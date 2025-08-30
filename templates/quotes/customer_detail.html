@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ customer.name }} - Gestion Restaurant{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Informations client -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-user"></i> Informations client</h5>
+                <a href="{% url 'quotes:customer_update' customer.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-edit"></i> Modifier
+                </a>
+            </div>
+            <div class="card-body">
+                <h6 class="card-title">{{ customer.name }}</h6>
+                {% if customer.company %}
+                    <p class="card-text text-muted">{{ customer.company }}</p>
+                {% endif %}
+                
+                <hr>
+                
+                <!-- Contact -->
+                <h6>Contact</h6>
+                {% if customer.email %}
+                    <p class="mb-1">
+                        <i class="fas fa-envelope text-muted"></i> 
+                        <a href="mailto:{{ customer.email }}">{{ customer.email }}</a>
+                    </p>
+                {% endif %}
+                {% if customer.phone %}
+                    <p class="mb-1">
+                        <i class="fas fa-phone text-muted"></i> 
+                        <a href="tel:{{ customer.phone }}">{{ customer.phone }}</a>
+                    </p>
+                {% endif %}
+                
+                <!-- Adresse -->
+                {% if customer.address or customer.city %}
+                    <hr>
+                    <h6>Adresse</h6>
+                    {% if customer.address %}
+                        <p class="mb-1">{{ customer.address }}</p>
+                    {% endif %}
+                    {% if customer.postal_code or customer.city %}
+                        <p class="mb-1">{{ customer.postal_code }} {{ customer.city }}</p>
+                    {% endif %}
+                    {% if customer.country %}
+                        <p class="mb-1">{{ customer.country }}</p>
+                    {% endif %}
+                {% endif %}
+                
+                <hr>
+                <small class="text-muted">Client depuis le {{ customer.created_at|date:"d/m/Y" }}</small>
+            </div>
+        </div>
+        
+        <!-- Actions rapides -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6><i class="fas fa-bolt"></i> Actions rapides</h6>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'quotes:create' %}?customer={{ customer.pk }}" class="btn btn-success w-100 mb-2">
+                    <i class="fas fa-file-invoice"></i> Nouveau devis
+                </a>
+                {% if customer.email %}
+                    <a href="mailto:{{ customer.email }}?subject=Devis" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-envelope"></i> Envoyer un email
+                    </a>
+                {% endif %}
+                {% if customer.phone %}
+                    <a href="tel:{{ customer.phone }}" class="btn btn-outline-success w-100">
+                        <i class="fas fa-phone"></i> Appeler
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Devis du client -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-file-invoice"></i> Devis ({{ quotes.count }})</h5>
+                <a href="{% url 'quotes:create' %}?customer={{ customer.pk }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Nouveau devis
+                </a>
+            </div>
+            <div class="card-body">
+                {% if quotes %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Numéro</th>
+                                    <th>Objet</th>
+                                    <th>Date</th>
+                                    <th>Montant</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for quote in quotes %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ quote.quote_number }}</strong>
+                                    </td>
+                                    <td>{{ quote.title|truncatechars:30 }}</td>
+                                    <td>{{ quote.quote_date|date:"d/m/Y" }}</td>
+                                    <td>
+                                        <strong class="text-success">{{ quote.total_amount|floatformat:2 }}€</strong>
+                                    </td>
+                                    <td>
+                                        {% if quote.status == 'draft' %}
+                                            <span class="badge bg-secondary">Brouillon</span>
+                                        {% elif quote.status == 'sent' %}
+                                            <span class="badge bg-info">Envoyé</span>
+                                        {% elif quote.status == 'accepted' %}
+                                            <span class="badge bg-success">Accepté</span>
+                                        {% elif quote.status == 'declined' %}
+                                            <span class="badge bg-danger">Refusé</span>
+                                        {% elif quote.status == 'expired' %}
+                                            <span class="badge bg-warning">Expiré</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'quotes:detail' quote.pk %}" 
+                                               class="btn btn-outline-primary" title="Voir">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'quotes:update' quote.pk %}" 
+                                               class="btn btn-outline-secondary" title="Modifier">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'quotes:duplicate' quote.pk %}" 
+                                               class="btn btn-outline-success" title="Dupliquer">
+                                                <i class="fas fa-copy"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Statistiques -->
+                    <div class="row mt-3">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Total devis</h6>
+                                <span class="h4 text-info">{{ quotes.count }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Acceptés</h6>
+                                <span class="h4 text-success">{{ quotes|length }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>CA potentiel</h6>
+                                <span class="h4 text-warning">
+                                    {% widthratio quotes|length 1 1000 %}€
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Dernier devis</h6>
+                                <span class="h6 text-muted">
+                                    {% if quotes.first %}
+                                        {{ quotes.first.quote_date|date:"d/m/Y" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-file-invoice fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">Aucun devis pour ce client</p>
+                        <a href="{% url 'quotes:create' %}?customer={{ customer.pk }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Créer le premier devis
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bouton retour -->
+<div class="mt-3">
+    <a href="{% url 'quotes:customers' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Retour à la liste des clients
+    </a>
+</div>
+{% endblock %}

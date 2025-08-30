@@ -1,0 +1,108 @@
+<!-- templates/accounts/access_denied.html -->
+{% extends 'base.html' %}
+
+{% block title %}Accès Refusé - Restaurant Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="text-center py-5">
+            <!-- Icône d'erreur -->
+            <div class="mb-4">
+                <i class="fas fa-lock fa-5x text-danger"></i>
+            </div>
+            
+            <!-- Message principal -->
+            <h1 class="display-4 text-danger mb-3">Accès Refusé</h1>
+            <h4 class="mb-4">Vous n'avez pas les permissions nécessaires</h4>
+            
+            <!-- Explication -->
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle"></i> Pourquoi cette page ?</h6>
+                <p class="mb-0">
+                    Cette fonctionnalité nécessite des permissions particulières que votre compte ne possède pas actuellement.
+                </p>
+            </div>
+            
+            <!-- Informations sur le compte actuel -->
+            <div class="card">
+                <div class="card-body">
+                    <h6>Votre compte actuel :</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Utilisateur :</strong> {{ user.get_full_name|default:user.username }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Rôle :</strong> 
+                                {% if user.is_superuser %}
+                                    <span class="badge bg-danger">Administrateur</span>
+                                {% elif user.groups.filter.name == 'Managers' %}
+                                    <span class="badge bg-warning">Manager</span>
+                                {% elif user.groups.filter.name == 'Employees' %}
+                                    <span class="badge bg-info">Employé</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Utilisateur</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions possibles -->
+            <div class="mt-4">
+                <h6>Que faire maintenant ?</h6>
+                <div class="d-flex gap-2 justify-content-center flex-wrap">
+                    <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-home"></i> Retour au dashboard
+                    </a>
+                    
+                    <a href="{% url 'accounts:profile' %}" class="btn btn-outline-info">
+                        <i class="fas fa-user"></i> Voir mon profil
+                    </a>
+                    
+                    {% if not user.is_superuser %}
+                    <button class="btn btn-outline-warning" onclick="requestAccess()">
+                        <i class="fas fa-envelope"></i> Demander l'accès
+                    </button>
+                    {% endif %}
+                    
+                    <a href="{% url 'accounts:logout' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-sign-out-alt"></i> Se déconnecter
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Contact administrateur -->
+            {% if not user.is_superuser %}
+            <div class="mt-4 p-3 bg-light rounded">
+                <h6 class="text-muted">
+                    <i class="fas fa-info-circle"></i> Besoin d'aide ?
+                </h6>
+                <p class="small text-muted mb-0">
+                    Si vous pensez que vous devriez avoir accès à cette fonctionnalité, 
+                    contactez votre administrateur pour demander les permissions appropriées.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function requestAccess() {
+    const currentUrl = document.referrer || window.location.href;
+    const subject = 'Demande d\'accès - Restaurant Manager';
+    const body = `Bonjour,\n\nJe souhaiterais obtenir l'accès à la fonctionnalité suivante :\n${currentUrl}\n\nMon compte : {{ user.username }}\nMon rôle actuel : {% if user.groups.filter %}{{ user.groups.filter.first.name }}{% else %}Aucun groupe{% endif %}\n\nMerci de votre aide.\n\nCordialement,\n{{ user.get_full_name|default:user.username }}`;
+    
+    // Créer un lien mailto
+    const mailtoLink = `mailto:admin@restaurant-manager.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    // Essayer d'ouvrir le client mail
+    window.location.href = mailtoLink;
+    
+    // Afficher aussi un message avec les informations
+    alert('Un email de demande d\'accès va s\'ouvrir dans votre client mail.\n\nSi cela ne fonctionne pas, contactez votre administrateur en précisant :\n- Votre nom d\'utilisateur : {{ user.username }}\n- La page demandée : ' + currentUrl);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,371 @@
+<!-- templates/finances/monthly_reports.html -->
+{% extends 'base.html' %}
+
+{% block title %}Rapports Mensuels - Finances{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-bar"></i> Rapports Mensuels</h2>
+    <a href="{% url 'finances:dashboard' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Retour au dashboard
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                {{ filter_form.annee.label_tag }}
+                {{ filter_form.annee }}
+            </div>
+            <div class="col-md-4">
+                {{ filter_form.mois.label_tag }}
+                {{ filter_form.mois }}
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Graphique annuel -->
+{% if donnees_annee %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-chart-line"></i> Évolution {{ filter_form.annee.value }}</h5>
+    </div>
+    <div class="card-body">
+        <canvas id="yearChart" height="80"></canvas>
+    </div>
+</div>
+{% endif %}
+
+<!-- Liste des résumés mensuels -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-table"></i> Résumés mensuels</h5>
+    </div>
+    <div class="card-body">
+        {% if resumes %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Période</th>
+                            <th>CA Total</th>
+                            <th>CB</th>
+                            <th>Espèces</th>
+                            <th>TR</th>
+                            <th>Jours</th>
+                            <th>CA/Jour</th>
+                            <th>Clients</th>
+                            <th>Ticket Moyen</th>
+                            <th>Écarts</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for resume in resumes %}
+                        <tr>
+                            <td>
+                                <strong>{{ resume.get_mois_display }} {{ resume.annee }}</strong>
+                            </td>
+                            <td>
+                                <strong class="text-success">{{ resume.total_ca|floatformat:2 }}€</strong>
+                            </td>
+                            <td>{{ resume.total_cb|floatformat:2 }}€</td>
+                            <td>{{ resume.total_especes|floatformat:2 }}€</td>
+                            <td>{{ resume.total_tr|floatformat:2 }}€</td>
+                            <td>
+                                <span class="badge bg-info">{{ resume.jours_ouverture }}</span>
+                            </td>
+                            <td>{{ resume.ca_moyen_jour|floatformat:2 }}€</td>
+                            <td>
+                                {% if resume.total_clients %}
+                                    {{ resume.total_clients }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if resume.ticket_moyen_mensuel %}
+                                    {{ resume.ticket_moyen_mensuel|floatformat:2 }}€
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if resume.total_ecarts == 0 %}
+                                    <span class="text-success">0€</span>
+                                {% elif resume.total_ecarts > 0 %}
+                                    <span class="text-info">+{{ resume.total_ecarts|floatformat:2 }}€</span>
+                                {% else %}
+                                    <span class="text-danger">{{ resume.total_ecarts|floatformat:2 }}€</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Statistiques globales -->
+            {% if resumes|length > 1 %}
+            <div class="row mt-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5>{{ resumes|length }}</h5>
+                            <small class="text-muted">Mois analysés</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            {% if resumes %}
+                            <h5>{{ resumes.0.total_ca|floatformat:0 }}€</h5>
+                            {% else %}
+                            <h5>0€</h5>
+                            {% endif %}
+                            <small class="text-muted">Premier mois</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            {% if resumes %}
+                            <h5 id="avg-ca-display">-€</h5>
+                            {% else %}
+                            <h5>0€</h5>
+                            {% endif %}
+                            <small class="text-muted">CA moyen</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            {% if resumes %}
+                            <h5 id="avg-jours-display">-</h5>
+                            {% else %}
+                            <h5>0</h5>
+                            {% endif %}
+                            <small class="text-muted">Jours moy./mois</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                <h4>Aucun résumé mensuel</h4>
+                <p class="text-muted">
+                    Les résumés mensuels sont calculés automatiquement à partir de vos ventes journalières.
+                </p>
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{% url 'finances:sale_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Ajouter des ventes
+                    </a>
+                    <a href="{% url 'finances:excel_import' %}" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> Importer Excel
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Comparaison par type de paiement -->
+{% if resumes|length > 2 %}
+<div class="card mt-4">
+    <div class="card-header">
+        <h5><i class="fas fa-pie-chart"></i> Répartition des moyens de paiement</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <canvas id="paymentChart" height="200"></canvas>
+            </div>
+            <div class="col-md-6">
+                <h6>Moyennes sur la période :</h6>
+                <table class="table table-sm">
+                    <tr>
+                        <td>Carte Bancaire :</td>
+                        <td class="text-end">
+                            <span id="avg-cb">-</span>€/mois
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Espèces :</td>
+                        <td class="text-end">
+                            <span id="avg-especes">-</span>€/mois
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Tickets Restaurant :</td>
+                        <td class="text-end">
+                            <span id="avg-tr">-</span>€/mois
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if donnees_annee %}
+// Graphique évolution annuelle
+const yearCtx = document.getElementById('yearChart').getContext('2d');
+const yearData = {{ donnees_annee|safe }};
+
+new Chart(yearCtx, {
+    type: 'line',
+    data: {
+        labels: yearData.map(d => {
+            const mois = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 
+                         'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+            return mois[d.mois - 1];
+        }),
+        datasets: [{
+            label: 'Chiffre d\'affaires',
+            data: yearData.map(d => d.ca),
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.1,
+            fill: true
+        }, {
+            label: 'Jours d\'ouverture',
+            data: yearData.map(d => d.jours * 1000), // Multiplier pour la visualisation
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            yAxisID: 'y1',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                ticks: {
+                    callback: function(value) {
+                        return value + '€';
+                    }
+                }
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                grid: {
+                    drawOnChartArea: false,
+                },
+                ticks: {
+                    callback: function(value) {
+                        return (value / 1000) + ' j';
+                    }
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        if (context.datasetIndex === 0) {
+                            return 'CA: ' + context.parsed.y.toFixed(2) + '€';
+                        } else {
+                            return 'Jours: ' + (context.parsed.y / 1000);
+                        }
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// Calculer et afficher les moyennes
+{% if resumes %}
+let totalCa = 0, totalJours = 0, nbResumes = 0;
+let totalCb = 0, totalEspeces = 0, totalTr = 0;
+
+{% for resume in resumes %}
+totalCa += {{ resume.total_ca }};
+totalJours += {{ resume.jours_ouverture }};
+totalCb += {{ resume.total_cb }};
+totalEspeces += {{ resume.total_especes }};
+totalTr += {{ resume.total_tr }};
+nbResumes++;
+{% endfor %}
+
+// Mettre à jour les affichages de moyennes
+if (nbResumes > 0) {
+    document.getElementById('avg-ca-display').textContent = (totalCa / nbResumes).toFixed(0) + '€';
+    document.getElementById('avg-jours-display').textContent = Math.round(totalJours / nbResumes);
+    
+    // Moyennes pour les moyens de paiement
+    if (document.getElementById('avg-cb')) {
+        document.getElementById('avg-cb').textContent = (totalCb / nbResumes).toFixed(0);
+        document.getElementById('avg-especes').textContent = (totalEspeces / nbResumes).toFixed(0);
+        document.getElementById('avg-tr').textContent = (totalTr / nbResumes).toFixed(0);
+    }
+}
+
+// Graphique répartition moyens de paiement
+{% if resumes|length > 2 %}
+const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+
+new Chart(paymentCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Carte Bancaire', 'Espèces', 'Tickets Restaurant'],
+        datasets: [{
+            data: [totalCb, totalEspeces, totalTr],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 206, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)'
+            ],
+            borderColor: [
+                'rgba(54, 162, 235, 1)',
+                'rgba(255, 206, 86, 1)',
+                'rgba(75, 192, 192, 1)'
+            ],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                        return context.label + ': ' + context.parsed.toFixed(2) + '€ (' + percentage + '%)';
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+{% endif %}
+</script>
+{% endblock %}

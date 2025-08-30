@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Mes Devis - Gestion Restaurant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-file-invoice"></i> Mes Devis</h2>
+    <a href="{% url 'quotes:create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Nouveau devis
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="btn-group" role="group">
+                    <a href="{% url 'quotes:list' %}" 
+                       class="btn {% if not current_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        Tous
+                    </a>
+                    <a href="{% url 'quotes:list' %}?status=draft" 
+                       class="btn {% if current_filter == 'draft' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                        Brouillons
+                    </a>
+                    <a href="{% url 'quotes:list' %}?status=sent" 
+                       class="btn {% if current_filter == 'sent' %}btn-info{% else %}btn-outline-info{% endif %}">
+                        Envoyés
+                    </a>
+                    <a href="{% url 'quotes:list' %}?status=accepted" 
+                       class="btn {% if current_filter == 'accepted' %}btn-success{% else %}btn-outline-success{% endif %}">
+                        Acceptés
+                    </a>
+                    <a href="{% url 'quotes:list' %}?status=declined" 
+                       class="btn {% if current_filter == 'declined' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                        Refusés
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <small class="text-muted">{{ quotes.count }} devis</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if quotes %}
+    <div class="row">
+        {% for quote in quotes %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">{{ quote.quote_number }}</h6>
+                    {% if quote.status == 'draft' %}
+                        <span class="badge bg-secondary">Brouillon</span>
+                    {% elif quote.status == 'sent' %}
+                        <span class="badge bg-info">Envoyé</span>
+                    {% elif quote.status == 'accepted' %}
+                        <span class="badge bg-success">Accepté</span>
+                    {% elif quote.status == 'declined' %}
+                        <span class="badge bg-danger">Refusé</span>
+                    {% elif quote.status == 'expired' %}
+                        <span class="badge bg-warning">Expiré</span>
+                    {% endif %}
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ quote.title|truncatechars:40 }}</h5>
+                    <p class="text-muted mb-2">
+                        <i class="fas fa-user"></i> {{ quote.customer.name }}
+                        {% if quote.customer.company %}
+                            <br><small>{{ quote.customer.company }}</small>
+                        {% endif %}
+                    </p>
+                    
+                    {% if quote.description %}
+                        <p class="card-text small text-muted">{{ quote.description|truncatechars:80 }}</p>
+                    {% endif %}
+                    
+                    <div class="row text-center mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Date</small><br>
+                            <strong>{{ quote.quote_date|date:"d/m/Y" }}</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Valable jusqu'au</small><br>
+                            <strong class="{% if quote.valid_until < today %}text-danger{% endif %}">
+                                {{ quote.valid_until|date:"d/m/Y" }}
+                            </strong>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mb-3">
+                        <h4 class="text-success mb-0">{{ quote.total_amount|floatformat:2 }}€</h4>
+                        <small class="text-muted">TTC</small>
+                        {% if quote.profit_margin > 0 %}
+                            <br><small class="text-success">
+                                Marge: {{ quote.profit_margin|floatformat:2 }}€ 
+                                ({{ quote.profit_margin_percentage|floatformat:1 }}%)
+                            </small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mt-auto">
+                        <div class="d-flex gap-1 mb-2">
+                            <a href="{% url 'quotes:detail' quote.pk %}" class="btn btn-outline-primary btn-sm flex-fill">
+                                <i class="fas fa-eye"></i> Voir
+                            </a>
+                            <a href="{% url 'quotes:update' quote.pk %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'quotes:duplicate' quote.pk %}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-copy"></i>
+                            </a>
+                        </div>
+                        
+                        {% if quote.status == 'draft' %}
+                            <form method="post" action="{% url 'quotes:change_status' quote.pk %}" class="d-inline w-100">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="sent">
+                                <button type="submit" class="btn btn-info btn-sm w-100">
+                                    <i class="fas fa-paper-plane"></i> Marquer comme envoyé
+                                </button>
+                            </form>
+                        {% elif quote.status == 'sent' %}
+                            <div class="btn-group w-100" role="group">
+                                <form method="post" action="{% url 'quotes:change_status' quote.pk %}" class="flex-fill">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="accepted">
+                                    <button type="submit" class="btn btn-success btn-sm w-100">
+                                        <i class="fas fa-check"></i> Accepté
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'quotes:change_status' quote.pk %}" class="flex-fill">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="declined">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                        <i class="fas fa-times"></i> Refusé
+                                    </button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+        <h4>Aucun devis</h4>
+        {% if current_filter %}
+            <p class="text-muted">Aucun devis avec ce statut.</p>
+            <a href="{% url 'quotes:list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-eye"></i> Voir tous les devis
+            </a>
+        {% else %}
+            <p class="text-muted">Créez votre premier devis pour commencer à travailler avec vos clients.</p>
+            <a href="{% url 'quotes:create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Créer mon premier devis
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

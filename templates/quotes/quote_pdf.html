@@ -1,0 +1,389 @@
+    <!-- En-tête -->
+    <div class="header">
+        <table class="info-table">
+            <tr>
+                <td style="width: 60%;">
+                    {% if company.logo %}
+                        <img src="{{ company.logo.url }}" alt="Logo" class="logo" style="margin-bottom: 10px;"><br>
+                    {% endif %}
+                    <h1 style="color: #007bff; margin: 0; font-size: 20px;">{{ company.name }}</h1>
+                    <p style="margin: 5px 0; white-space: pre-line; font-size: 11px;">{{ company.address }}</p>
+                    <p style="margin: 5px 0; font-size: 11px;">
+                        Tél: {{ company.phone }}<br>
+                        Email: {{ company.email }}
+                    </p>
+                </td>
+                <td class="company-info" style="font-size: 11px;">
+                    {% if company.siret %}
+                        <p style="margin: 5px 0;"><strong>SIRET:</strong> {{ company.siret }}</p>
+                    {% endif %}
+                    {% if company.tva_number %}
+                        <p style="margin: 5px 0;"><strong>TVA:</strong> {{ company.tva_number }}</p>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Titre du devis -->
+    <h1 class="quote-title">DEVIS N° {{ quote.quote_number }}</h1>
+
+    <!-- Informations client et devis -->
+    <table class="info-table">
+        <tr>
+            <td style="width: 50%;">
+                <h3 style="color: #007bff; margin-bottom: 10px;">Facturer à :</h3>
+                <div style="border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9;">
+                    <p style="margin: 0;"><strong>{{ quote.customer.name }}</strong></p>
+                    {% if quote.customer.company %}
+                        <p style="margin: 5px 0;">{{ quote.customer.company }}</p>
+                    {% endif %}
+                    {% if quote.customer.address %}
+                        <p style="margin: 5px 0; white-space: pre-line;">{{ quote.customer.address }}</p>
+                    {% endif %}
+                    {% if quote.customer.postal_code or quote.customer.city %}
+                        <p style="margin: 5px 0;">{{ quote.customer.postal_code }} {{ quote.customer.city }}</p>
+                    {% endif %}
+                    {% if quote.customer.country and quote.customer.country != 'France' %}
+                        <p style="margin: 5px 0;">{{ quote.customer.country }}</p>
+                    {% endif %}
+                    {% if quote.customer.email %}
+                        <p style="margin: 5px 0;">{{ quote.customer.email }}</p>
+                    {% endif %}
+                    {% if quote.customer.phone %}
+                        <p style="margin: 5px 0;">{{ quote.customer.phone }}</p>
+                    {% endif %}
+                </div>
+            </td>
+            <td style="width: 50%; vertical-align: top; padding-left: 20px;">
+                <h3 style="color: #007bff; margin-bottom: 10px;">Détails du devis :</h3>
+                <table style="width: 100%; font-size: 12px;">
+                    <tr>
+                        <td style="padding: 5px 0; width: 40%;"><strong>Date d'émission :</strong></td>
+                        <td style="padding: 5px 0;">{{ quote.quote_date|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px 0;"><strong>Valable jusqu'au :</strong></td>
+                        <td style="padding: 5px 0;">{{ quote.valid_until|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% if quote.event_date %}
+                    <tr>
+                        <td style="padding: 5px 0;"><strong>Date événement :</strong></td>
+                        <td style="padding: 5px 0;">{{ quote.event_date|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Objet du devis -->
+    <div style="background-color: #f8f9fa; padding: 15px; margin: 20px 0; border-left: 4px solid #007bff;">
+        <h3 style="margin: 0 0 10px 0; color: #007bff;">Objet: {{ quote.title }}</h3>
+        {% if quote.description %}
+            <p style="margin: 0; font-style: italic;">{{ quote.description|linebreaks }}</p>
+        {% endif %}
+    </div>
+
+    <!-- Prestations -->
+    <h3 style="color: #007bff; margin-bottom: 15px;">Détail des prestations</h3>
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 45%;">Prestation</th>
+                <th style="width: 15%; text-align: center;">Quantité</th>
+                <th style="width: 18%; text-align: right;">Prix unitaire HT</th>
+                <th style="width: 22%; text-align: right;">Total HT</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>
+                    <strong>{{ item.recipe.name }}</strong>
+                    {% if item.description %}
+                        <br><em style="font-size: 10px; color: #666;">{{ item.description }}</em>
+                    {% endif %}
+                </td>
+                <td class="text-center">{{ item.quantity }} portion{{ item.quantity|pluralize }}</td>
+                <td class="text-right">{{ item.unit_price|floatformat:2 }} €</td>
+                <td class="text-right"><strong>{{ item.total_price|floatformat:2 }} €</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Totaux -->
+    <table class="totals-table">
+        <tr>
+            <td style="font-weight: bold;">Sous-total HT :</td>
+            <td class="text-right" style="font-weight: bold;">{{ quote.subtotal|floatformat:2 }} €</td>
+        </tr>
+        {% if quote.discount_percentage > 0 %}
+        <tr>
+            <td>Remise ({{ quote.discount_percentage }}%) :</td>
+            <td class="text-right" style="color: #dc3545;">-{{ quote.discount_amount|floatformat:2 }} €</td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold;">Net HT :</td>
+            <td class="text-right" style="font-weight: bold;">{{ quote.subtotal_after_discount|floatformat:2 }} €</td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td>TVA ({{ quote.tax_rate }}%) :</td>
+            <td class="text-right">{{ quote.tax_amount|floatformat:2 }} €</td>
+        </tr>
+        <tr class="total-row">
+            <td><strong>TOTAL TTC :</strong></td>
+            <td class="text-right"><strong>{{ quote.total_amount|floatformat:2 }} €</strong></td>
+        </tr>
+    </table>
+
+    <!-- Conditions et modalités -->
+    <div class="terms">
+        <h4>Modalités de paiement</h4>
+        {% if company.payment_terms %}
+            <p>{{ company.payment_terms }}</p>
+        {% else %}
+            <p>30% d'acompte à la commande, solde à la livraison.</p>
+        {% endif %}
+        
+        <h4>Conditions particulières</h4>
+        {% if quote.terms_conditions %}
+            <p>{{ quote.terms_conditions|linebreaks }}</p>
+        {% endif %}
+        
+        {% if company.default_terms %}
+            <p>{{ company.default_terms|linebreaks }}</p>
+        {% endif %}
+        
+        <p><strong>Validité du devis :</strong> Ce devis est valable jusqu'au {{ quote.valid_until|date:"d/m/Y" }}.</p>
+        <p><strong>Livraison :</strong> Les prestations seront livrées à l'adresse indiquée par le client.</p>
+        
+        <h4>Mentions légales</h4>
+        <p style="font-size: 10px;">
+            Conformément à la loi, en cas de retard de paiement, des pénalités égales à 3 fois le taux d'intérêt légal seront appliquées, 
+            ainsi qu'une indemnité forfaitaire de 40€ pour frais de recouvrement. 
+            Le règlement par chèque entraînera des frais bancaires de 15€.
+        </p>
+    </div>
+
+    <!-- Signature -->
+    <div class="signature-section">
+        <table style="width: 100%; margin-top: 40px;">
+            <tr>
+                <td style="width: 50%; vertical-align: top;">
+                    <div style="border: 1px solid #ddd; padding: 20px; height: 120px;">
+                        <p style="margin: 0; font-weight: bold;">Bon pour accord</p>
+                        <p style="margin: 5px 0; font-size: 11px;">Date et signature du client :</p>
+                        <p style="margin: 5px 0; font-size: 10px; color: #666;">
+                            Précédée de la mention "Lu et approuvé"
+                        </p>
+                    </div>
+                </td>
+                <td style="width: 50%; vertical-align: top; padding-left: 20px;">
+                    <div style="text-align: center; padding: 20px;">
+                        <p style="margin: 0; font-weight: bold;">{{ company.name }}</p>
+                        <p style="margin: 10px 0; font-size: 11px;">Signature et cachet de l'entreprise</p>
+                        <br><br><br>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>
+            {{ company.name }} - {{ company.address|striptags|linebreaks }}<br>
+            {% if company.siret %}SIRET: {{ company.siret }}{% endif %}
+            {% if company.tva_number %} - TVA: {{ company.tva_number }}{% endif %}<br>
+            Tél: {{ company.phone }} - Email: {{ company.email }}
+        </p>
+    </div>
+</body>
+</html><!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Devis {{ quote.quote_number }}</title>
+</head>
+<body>
+    <!-- En-tête -->
+    <div class="header">
+        <table class="info-table">
+            <tr>
+                <td style="width: 50%;">
+                    <h1 style="color: #007bff; margin: 0;">{{ company.name }}</h1>
+                    <p style="margin: 5px 0; white-space: pre-line;">{{ company.address }}</p>
+                    <p style="margin: 5px 0;">
+                        Tél: {{ company.phone }}<br>
+                        Email: {{ company.email }}
+                    </p>
+                </td>
+                <td class="company-info">
+                    <p style="margin: 5px 0;">
+                        <strong>SIRET:</strong> {{ company.siret }}<br>
+                        <strong>TVA:</strong> {{ company.tva }}
+                    </p>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Titre du devis -->
+    <h1 class="quote-title">DEVIS N° {{ quote.quote_number }}</h1>
+
+    <!-- Informations client et devis -->
+    <table class="info-table">
+        <tr>
+            <td style="width: 50%;">
+                <h3>Client</h3>
+                <p><strong>{{ quote.customer.name }}</strong></p>
+                {% if quote.customer.company %}
+                    <p>{{ quote.customer.company }}</p>
+                {% endif %}
+                {% if quote.customer.address %}
+                    <p style="white-space: pre-line;">{{ quote.customer.address }}</p>
+                {% endif %}
+                {% if quote.customer.postal_code or quote.customer.city %}
+                    <p>{{ quote.customer.postal_code }} {{ quote.customer.city }}</p>
+                {% endif %}
+                {% if quote.customer.country %}
+                    <p>{{ quote.customer.country }}</p>
+                {% endif %}
+                {% if quote.customer.email %}
+                    <p>Email: {{ quote.customer.email }}</p>
+                {% endif %}
+                {% if quote.customer.phone %}
+                    <p>Tél: {{ quote.customer.phone }}</p>
+                {% endif %}
+            </td>
+            <td style="width: 50%; vertical-align: top;">
+                <h3>Informations du devis</h3>
+                <table style="width: 100%;">
+                    <tr>
+                        <td><strong>Date:</strong></td>
+                        <td>{{ quote.quote_date|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Valable jusqu'au:</strong></td>
+                        <td>{{ quote.valid_until|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% if quote.event_date %}
+                    <tr>
+                        <td><strong>Date événement:</strong></td>
+                        <td>{{ quote.event_date|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Objet du devis -->
+    <h3>Objet: {{ quote.title }}</h3>
+    {% if quote.description %}
+        <p>{{ quote.description|linebreaks }}</p>
+    {% endif %}
+
+    <!-- Prestations -->
+    <h3>Détail des prestations</h3>
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 40%;">Prestation</th>
+                <th style="width: 15%; text-align: center;">Quantité</th>
+                <th style="width: 15%; text-align: right;">Prix unitaire</th>
+                <th style="width: 15%; text-align: right;">Total HT</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>
+                    <strong>{{ item.recipe.name }}</strong>
+                    {% if item.description %}
+                        <br><em style="font-size: 11px;">{{ item.description }}</em>
+                    {% endif %}
+                </td>
+                <td style="text-align: center;">{{ item.quantity }} portion{{ item.quantity|pluralize }}</td>
+                <td class="text-right">{{ item.unit_price|floatformat:2 }} €</td>
+                <td class="text-right"><strong>{{ item.total_price|floatformat:2 }} €</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Totaux -->
+    <table class="totals-table">
+        <tr>
+            <td><strong>Sous-total HT:</strong></td>
+            <td class="text-right"><strong>{{ quote.subtotal|floatformat:2 }} €</strong></td>
+        </tr>
+        {% if quote.discount_percentage > 0 %}
+        <tr>
+            <td>Remise ({{ quote.discount_percentage }}%):</td>
+            <td class="text-right" style="color: #dc3545;">-{{ quote.discount_amount|floatformat:2 }} €</td>
+        </tr>
+        <tr>
+            <td><strong>Net HT:</strong></td>
+            <td class="text-right"><strong>{{ quote.subtotal_after_discount|floatformat:2 }} €</strong></td>
+        </tr>
+        {% endif %}
+        <tr>
+            <td>TVA ({{ quote.tax_rate }}%):</td>
+            <td class="text-right">{{ quote.tax_amount|floatformat:2 }} €</td>
+        </tr>
+        <tr class="total-row">
+            <td><strong>TOTAL TTC:</strong></td>
+            <td class="text-right"><strong>{{ quote.total_amount|floatformat:2 }} €</strong></td>
+        </tr>
+    </table>
+
+    <!-- Conditions générales -->
+    <div class="terms">
+        <h4>Conditions générales</h4>
+        {% if quote.terms_conditions %}
+            <p>{{ quote.terms_conditions|linebreaks }}</p>
+        {% endif %}
+        
+        <p><strong>Modalités de paiement:</strong> 30% d'acompte à la commande, solde à la livraison.</p>
+        <p><strong>Validité du devis:</strong> Ce devis est valable jusqu'au {{ quote.valid_until|date:"d/m/Y" }}.</p>
+        <p><strong>Livraison:</strong> Les prestations seront livrées à l'adresse indiquée par le client.</p>
+        
+        <h4>Mentions légales</h4>
+        <p>
+            En cas de retard de paiement, des pénalités de 3 fois le taux d'intérêt légal seront appliquées.<br>
+            Une indemnité forfaitaire de 40€ pour frais de recouvrement sera due en cas de retard de paiement.<br>
+            Tout règlement par chèque sera majoré de 15€ de frais bancaires.
+        </p>
+    </div>
+
+    <!-- Signature -->
+    <div style="margin-top: 50px;">
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 50%;">
+                    <p><strong>Bon pour accord :</strong></p>
+                    <p>Date et signature du client :</p>
+                    <br><br><br>
+                </td>
+                <td style="width: 50%; text-align: right;">
+                    <p>{{ company.name }}</p>
+                    <br><br><br>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>
+            {{ company.name }} - {{ company.address|linebreaks }}<br>
+            SIRET: {{ company.siret }} - TVA: {{ company.tva }}<br>
+            Tél: {{ company.phone }} - Email: {{ company.email }}
+        </p>
+    </div>
+</body>
+</html>

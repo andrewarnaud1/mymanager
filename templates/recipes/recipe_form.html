@@ -1,0 +1,245 @@
+{% extends 'base.html' %} {% block title %}{{ title }} - Gestion Restaurant
+{%endblock %} {% block content %}
+<div class="card">
+  <div class="card-header">
+    <h4><i class="fas fa-book"></i> {{ title }}</h4>
+  </div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Informations de base -->
+      <div class="row">
+        <div class="col-md-8">
+          <div class="mb-3">
+            <label for="{{ form.name.id_for_label }}" class="form-label">
+              {{ form.name.label }} <span class="text-danger">*</span>
+            </label>
+            {{ form.name }} {% if form.name.errors %}
+            <div class="text-danger small">{{ form.name.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label for="{{ form.servings.id_for_label }}" class="form-label">
+              {{ form.servings.label }} <span class="text-danger">*</span>
+            </label>
+            {{ form.servings }} {% if form.servings.errors %}
+            <div class="text-danger small">{{ form.servings.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="{{ form.description.id_for_label }}" class="form-label">
+          {{ form.description.label }}
+        </label>
+        {{ form.description }} {% if form.description.errors %}
+        <div class="text-danger small">{{ form.description.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label
+              for="{{ form.preparation_time.id_for_label }}"
+              class="form-label"
+            >
+              {{ form.preparation_time.label }}
+            </label>
+            {{ form.preparation_time }} {% if form.preparation_time.errors %}
+            <div class="text-danger small">
+              {{ form.preparation_time.errors.0 }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label
+              for="{{ form.cooking_time.id_for_label }}"
+              class="form-label"
+            >
+              {{ form.cooking_time.label }}
+            </label>
+            {{ form.cooking_time }} {% if form.cooking_time.errors %}
+            <div class="text-danger small">
+              {{ form.cooking_time.errors.0 }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Ingrédients -->
+      <h5 class="mt-4">Ingrédients</h5>
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        <strong>Conseil :</strong> Les unités sont converties automatiquement.
+        Exemple : si votre farine est en "kg", vous pouvez utiliser "g" dans la
+        recette.
+      </div>
+
+      {{ formset.management_form }}
+      <div id="ingredient-formset">
+        {% for form in formset %}
+        <div class="ingredient-form border rounded p-3 mb-3">
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %} 
+          {% for hidden in form.hidden_fields %} 
+            {{ hidden }} 
+          {% endfor %}
+
+          <div class="row">
+            <div class="col-md-5">
+              <label class="form-label">Ingrédient</label>
+              {{ form.ingredient }} {% if form.ingredient.errors %}
+              <div class="text-danger small">
+                {{ form.ingredient.errors.0 }}
+              </div>
+              {% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Quantité</label>
+              {{ form.quantity }} {% if form.quantity.errors %}
+              <div class="text-danger small">{{ form.quantity.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Unité</label>
+              {{ form.unit }} {% if form.unit.errors %}
+              <div class="text-danger small">{{ form.unit.errors.0 }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+              {% if form.DELETE %}
+              <div class="form-check">
+                {{ form.DELETE }}
+                <label class="form-check-label text-danger small">Suppr.</label>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Template pour les nouveaux ingrédients (caché) -->
+      <div id="empty-form" style="display: none">
+        <div class="ingredient-form border rounded p-3 mb-3">
+          <div class="row">
+            <div class="col-md-5">
+              <label class="form-label">Ingrédient</label>
+              <select
+                name="recipe_ingredients-__prefix__-ingredient"
+                class="form-select"
+              >
+                <option value="">---------</option>
+                {% for ingredient in formset.form.base_fields.ingredient.queryset %}
+                <option value="{{ ingredient.pk }}">
+                  {{ ingredient.name }} ({{ ingredient.get_unit_display }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Quantité</label>
+              <input
+                type="number"
+                name="recipe_ingredients-__prefix__-quantity"
+                class="form-control"
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Unité</label>
+              <select
+                name="recipe_ingredients-__prefix__-unit"
+                class="form-select"
+              >
+                {% for value, label in formset.form.base_fields.unit.choices %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+              <div class="form-check">
+                <input
+                  type="checkbox"
+                  name="recipe_ingredients-__prefix__-DELETE"
+                  class="form-check-input"
+                />
+                <label class="form-check-label text-danger small">Suppr.</label>
+              </div>
+            </div>
+          </div>
+          <input type="hidden" name="recipe_ingredients-__prefix__-id" />
+        </div>
+      </div>
+
+      <!-- Instructions -->
+      <div class="mb-4">
+        <label for="{{ form.instructions.id_for_label }}" class="form-label">
+          {{ form.instructions.label }}
+        </label>
+        {{ form.instructions }} {% if form.instructions.errors %}
+        <div class="text-danger small">{{ form.instructions.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <!-- Boutons -->
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+        <a href="{% url 'recipes:list' %}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> Retour
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Script pour ajouter dynamiquement des ingrédients
+  document.addEventListener("DOMContentLoaded", function () {
+    const formset = document.getElementById("ingredient-formset");
+    const addButton = document.createElement("button");
+    addButton.type = "button";
+    addButton.className = "btn btn-outline-secondary btn-sm mt-2";
+    addButton.innerHTML = '<i class="fas fa-plus"></i> Ajouter un ingrédient';
+    formset.appendChild(addButton);
+
+    addButton.addEventListener("click", function () {
+      const totalForms = document.querySelector(
+        "#id_recipe_ingredients-TOTAL_FORMS"
+      );
+      const formNum = parseInt(totalForms.value);
+
+      if (formNum < 10) {
+        // Limite à 10 ingrédients pour éviter les problèmes
+        // Cloner le template caché
+        const emptyForm = document.getElementById("empty-form");
+        const newForm = emptyForm
+          .querySelector(".ingredient-form")
+          .cloneNode(true);
+
+        // Remplacer __prefix__ par le numéro de formulaire
+        const formRegex = /__prefix__/g;
+        newForm.innerHTML = newForm.innerHTML.replace(formRegex, formNum);
+
+        // Ajouter le nouveau formulaire
+        formset.insertBefore(newForm, addButton);
+
+        // Mettre à jour le compteur
+        totalForms.value = formNum + 1;
+      }
+    });
+  });
+</script>
+{% endblock %}

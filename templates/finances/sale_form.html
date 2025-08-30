@@ -1,0 +1,331 @@
+<!-- templates/finances/sale_form.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Finances{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-cash-register"></i> {{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" id="sale-form">
+                    {% csrf_token %}
+                    
+                    <!-- Date -->
+                    <div class="mb-3">
+                        <label for="{{ form.date.id_for_label }}" class="form-label">
+                            {{ form.date.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                            <div class="text-danger small">{{ form.date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Carte Bancaire -->
+                    <h5 class="mb-3 mt-4"><i class="fas fa-credit-card"></i> Carte Bancaire</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.cb_caisse.id_for_label }}" class="form-label">
+                                    {{ form.cb_caisse.label }}
+                                </label>
+                                {{ form.cb_caisse }}
+                                <div class="form-text">Montant indiqué par la caisse</div>
+                                {% if form.cb_caisse.errors %}
+                                    <div class="text-danger small">{{ form.cb_caisse.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.cb_tpe.id_for_label }}" class="form-label">
+                                    {{ form.cb_tpe.label }}
+                                </label>
+                                {{ form.cb_tpe }}
+                                <div class="form-text">Montant indiqué par le TPE</div>
+                                {% if form.cb_tpe.errors %}
+                                    <div class="text-danger small">{{ form.cb_tpe.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info" id="cb-ecart" style="display: none;">
+                        <i class="fas fa-info-circle"></i> <strong>Écart CB:</strong> <span id="cb-ecart-value">0.00€</span>
+                    </div>
+                    
+                    <!-- Espèces -->
+                    <h5 class="mb-3 mt-4"><i class="fas fa-coins"></i> Espèces</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.especes_caisse.id_for_label }}" class="form-label">
+                                    {{ form.especes_caisse.label }}
+                                </label>
+                                {{ form.especes_caisse }}
+                                <div class="form-text">Montant indiqué par la caisse</div>
+                                {% if form.especes_caisse.errors %}
+                                    <div class="text-danger small">{{ form.especes_caisse.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.especes_reel.id_for_label }}" class="form-label">
+                                    {{ form.especes_reel.label }}
+                                </label>
+                                {{ form.especes_reel }}
+                                <div class="form-text">Montant réellement compté</div>
+                                {% if form.especes_reel.errors %}
+                                    <div class="text-danger small">{{ form.especes_reel.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info" id="especes-ecart" style="display: none;">
+                        <i class="fas fa-info-circle"></i> <strong>Écart Espèces:</strong> <span id="especes-ecart-value">0.00€</span>
+                    </div>
+                    
+                    <!-- Tickets Restaurant -->
+                    <h5 class="mb-3 mt-4"><i class="fas fa-ticket-alt"></i> Tickets Restaurant</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.tr_caisse.id_for_label }}" class="form-label">
+                                    {{ form.tr_caisse.label }}
+                                </label>
+                                {{ form.tr_caisse }}
+                                <div class="form-text">Montant indiqué par la caisse</div>
+                                {% if form.tr_caisse.errors %}
+                                    <div class="text-danger small">{{ form.tr_caisse.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.tr_reel.id_for_label }}" class="form-label">
+                                    {{ form.tr_reel.label }}
+                                </label>
+                                {{ form.tr_reel }}
+                                <div class="form-text">Montant réellement compté</div>
+                                {% if form.tr_reel.errors %}
+                                    <div class="text-danger small">{{ form.tr_reel.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info" id="tr-ecart" style="display: none;">
+                        <i class="fas fa-info-circle"></i> <strong>Écart TR:</strong> <span id="tr-ecart-value">0.00€</span>
+                    </div>
+                    
+                    <!-- Informations clients -->
+                    <h5 class="mb-3 mt-4"><i class="fas fa-users"></i> Statistiques clients (optionnel)</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.nombre_clients.id_for_label }}" class="form-label">
+                                    {{ form.nombre_clients.label }}
+                                </label>
+                                {{ form.nombre_clients }}
+                                {% if form.nombre_clients.errors %}
+                                    <div class="text-danger small">{{ form.nombre_clients.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Ticket moyen</label>
+                                <input type="text" class="form-control" id="ticket-moyen" readonly>
+                                <div class="form-text">Calculé automatiquement</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Récapitulatif -->
+                    <div class="card bg-light mt-4">
+                        <div class="card-body">
+                            <h6><i class="fas fa-calculator"></i> Récapitulatif</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td>Total CB:</td>
+                                            <td class="text-end"><span id="total-cb">0.00€</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Total Espèces:</td>
+                                            <td class="text-end"><span id="total-especes">0.00€</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Total TR:</td>
+                                            <td class="text-end"><span id="total-tr">0.00€</span></td>
+                                        </tr>
+                                        <tr class="table-success">
+                                            <td><strong>TOTAL JOURNALIER:</strong></td>
+                                            <td class="text-end"><strong><span id="total-journalier">0.00€</span></strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td>Écart CB:</td>
+                                            <td class="text-end"><span id="recap-cb-ecart">0.00€</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Écart Espèces:</td>
+                                            <td class="text-end"><span id="recap-especes-ecart">0.00€</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>Écart TR:</td>
+                                            <td class="text-end"><span id="recap-tr-ecart">0.00€</span></td>
+                                        </tr>
+                                        <tr class="table-warning">
+                                            <td><strong>ÉCART TOTAL:</strong></td>
+                                            <td class="text-end"><strong><span id="ecart-total">0.00€</span></strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Commentaires -->
+                    <div class="mb-4 mt-4">
+                        <label for="{{ form.commentaires.id_for_label }}" class="form-label">
+                            {{ form.commentaires.label }}
+                        </label>
+                        {{ form.commentaires }}
+                        {% if form.commentaires.errors %}
+                            <div class="text-danger small">{{ form.commentaires.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Boutons -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer
+                        </button>
+                        <a href="{% url 'finances:sales_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Retour à la liste
+                        </a>
+                        {% if sale %}
+                            <a href="{% url 'finances:sale_delete' sale.pk %}" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i> Supprimer
+                            </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = {
+        cb_caisse: document.getElementById('id_cb_caisse'),
+        cb_tpe: document.getElementById('id_cb_tpe'),
+        especes_caisse: document.getElementById('id_especes_caisse'),
+        especes_reel: document.getElementById('id_especes_reel'),
+        tr_caisse: document.getElementById('id_tr_caisse'),
+        tr_reel: document.getElementById('id_tr_reel'),
+        nombre_clients: document.getElementById('id_nombre_clients')
+    };
+    
+    function parseValue(input) {
+        const value = parseFloat(input.value) || 0;
+        return value;
+    }
+    
+    function formatEuro(value) {
+        return value.toFixed(2) + '€';
+    }
+    
+    function updateCalculations() {
+        // Calculs des écarts
+        const cbCaisse = parseValue(inputs.cb_caisse);
+        const cbTpe = parseValue(inputs.cb_tpe);
+        const cbEcart = cbTpe - cbCaisse;
+        
+        const especesCaisse = parseValue(inputs.especes_caisse);
+        const especesReel = parseValue(inputs.especes_reel);
+        const especesEcart = especesReel - especesCaisse;
+        
+        const trCaisse = parseValue(inputs.tr_caisse);
+        const trReel = parseValue(inputs.tr_reel);
+        const trEcart = trReel - trCaisse;
+        
+        // Affichage des écarts
+        const cbEcartDiv = document.getElementById('cb-ecart');
+        if (Math.abs(cbEcart) > 0.01) {
+            cbEcartDiv.style.display = 'block';
+            cbEcartDiv.className = cbEcart > 0 ? 'alert alert-info' : 'alert alert-warning';
+            document.getElementById('cb-ecart-value').textContent = (cbEcart >= 0 ? '+' : '') + formatEuro(cbEcart);
+        } else {
+            cbEcartDiv.style.display = 'none';
+        }
+        
+        const especesEcartDiv = document.getElementById('especes-ecart');
+        if (Math.abs(especesEcart) > 0.01) {
+            especesEcartDiv.style.display = 'block';
+            especesEcartDiv.className = especesEcart > 0 ? 'alert alert-info' : 'alert alert-warning';
+            document.getElementById('especes-ecart-value').textContent = (especesEcart >= 0 ? '+' : '') + formatEuro(especesEcart);
+        } else {
+            especesEcartDiv.style.display = 'none';
+        }
+        
+        const trEcartDiv = document.getElementById('tr-ecart');
+        if (Math.abs(trEcart) > 0.01) {
+            trEcartDiv.style.display = 'block';
+            trEcartDiv.className = trEcart > 0 ? 'alert alert-info' : 'alert alert-warning';
+            document.getElementById('tr-ecart-value').textContent = (trEcart >= 0 ? '+' : '') + formatEuro(trEcart);
+        } else {
+            trEcartDiv.style.display = 'none';
+        }
+        
+        // Calculs des totaux (utiliser les valeurs réelles quand disponibles)
+        const totalCb = cbTpe || cbCaisse;
+        const totalEspeces = especesReel || especesCaisse;
+        const totalTr = trReel || trCaisse;
+        const totalJournalier = totalCb + totalEspeces + totalTr;
+        const ecartTotal = cbEcart + especesEcart + trEcart;
+        
+        // Mise à jour de l'affichage
+        document.getElementById('total-cb').textContent = formatEuro(totalCb);
+        document.getElementById('total-especes').textContent = formatEuro(totalEspeces);
+        document.getElementById('total-tr').textContent = formatEuro(totalTr);
+        document.getElementById('total-journalier').textContent = formatEuro(totalJournalier);
+        
+        // Récapitulatif des écarts
+        document.getElementById('recap-cb-ecart').textContent = (cbEcart >= 0 ? '+' : '') + formatEuro(cbEcart);
+        document.getElementById('recap-especes-ecart').textContent = (especesEcart >= 0 ? '+' : '') + formatEuro(especesEcart);
+        document.getElementById('recap-tr-ecart').textContent = (trEcart >= 0 ? '+' : '') + formatEuro(trEcart);
+        document.getElementById('ecart-total').textContent = (ecartTotal >= 0 ? '+' : '') + formatEuro(ecartTotal);
+        
+        // Ticket moyen
+        const nombreClients = parseValue(inputs.nombre_clients);
+        if (nombreClients > 0 && totalJournalier > 0) {
+            const ticketMoyen = totalJournalier / nombreClients;
+            document.getElementById('ticket-moyen').value = formatEuro(ticketMoyen);
+        } else {
+            document.getElementById('ticket-moyen').value = '';
+        }
+    }
+    
+    // Écouter les changements sur tous les inputs
+    Object.values(inputs).forEach(input => {
+        if (input) {
+            input.addEventListener('input', updateCalculations);
+            input.addEventListener('change', updateCalculations);
+        }
+    });
+    
+    // Calcul initial
+    updateCalculations();
+});
+</script>
+{% endblock %}

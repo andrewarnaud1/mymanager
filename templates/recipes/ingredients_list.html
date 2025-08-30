@@ -1,0 +1,67 @@
+{% extends 'base.html' %} {% block title %}Mes Ingrédients - Gestion
+Restaurant{% endblock %} {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2><i class="fas fa-carrot"></i> Mes Ingrédients</h2>
+  <a href="{% url 'recipes:ingredient_create' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Ajouter un ingrédient
+  </a>
+</div>
+
+{% if ingredients %}
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Unité</th>
+            <th>Prix unitaire</th>
+            <th>Ajouté le</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ingredient in ingredients %}
+          <tr>
+            <td><strong>{{ ingredient.name }}</strong></td>
+            <td>
+              <span class="badge bg-secondary">{{ ingredient.unit }}</span>
+            </td>
+            <td>
+              <span class="text-success">{{ ingredient.unit_price }}€</span>
+            </td>
+            <td>{{ ingredient.created_at|date:"d/m/Y" }}</td>
+            <td>
+              <a
+                href="{% url 'recipes:ingredient_update' ingredient.pk %}"
+                class="btn btn-sm btn-outline-primary"
+              >
+                <i class="fas fa-edit"></i>
+              </a>
+              <a
+                href="{% url 'recipes:ingredient_delete' ingredient.pk %}"
+                class="btn btn-sm btn-outline-danger"
+              >
+                <i class="fas fa-trash"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="text-center py-5">
+  <i class="fas fa-carrot fa-3x text-muted mb-3"></i>
+  <h4>Aucun ingrédient</h4>
+  <p class="text-muted">
+    Commencez par ajouter vos premiers ingrédients pour créer vos recettes.
+  </p>
+  <a href="{% url 'recipes:ingredient_create' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Ajouter mon premier ingrédient
+  </a>
+</div>
+{% endif %} {% endblock %}

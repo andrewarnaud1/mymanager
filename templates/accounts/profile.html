@@ -1,0 +1,208 @@
+<!-- templates/accounts/profile.html -->
+{% extends 'base.html' %}
+
+{% block title %}Mon Profil - Restaurant Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-user"></i> Mon Profil</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Informations personnelles -->
+                    <h5 class="mb-3">Informations personnelles</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                    {{ form.first_name.label }}
+                                </label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger small">{{ form.first_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                    {{ form.last_name.label }}
+                                </label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger small">{{ form.last_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">
+                            {{ form.email.label }}
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Informations de compte -->
+                    <h5 class="mb-3 mt-4">Informations de compte</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nom d'utilisateur</label>
+                                <input type="text" class="form-control" value="{{ user.username }}" readonly>
+                                <small class="text-muted">Le nom d'utilisateur ne peut pas être modifié</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Membre depuis</label>
+                                <input type="text" class="form-control" value="{{ user.date_joined|date:'d/m/Y' }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer les modifications
+                        </button>
+                        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Retour au dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Informations sur les permissions -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-shield-alt"></i> Mes permissions</h5>
+            </div>
+            <div class="card-body">
+                <!-- Rôle principal -->
+                <div class="mb-3">
+                    <h6>Rôle :</h6>
+                    {% if permissions.is_admin %}
+                        <span class="badge bg-danger fs-6">
+                            <i class="fas fa-crown"></i> Administrateur
+                        </span>
+                    {% elif permissions.is_manager %}
+                        <span class="badge bg-warning fs-6">
+                            <i class="fas fa-user-tie"></i> Manager
+                        </span>
+                    {% elif permissions.is_employee %}
+                        <span class="badge bg-info fs-6">
+                            <i class="fas fa-user"></i> Employé
+                        </span>
+                    {% else %}
+                        <span class="badge bg-secondary fs-6">
+                            <i class="fas fa-user-circle"></i> Utilisateur
+                        </span>
+                    {% endif %}
+                </div>
+                
+                <!-- Groupes -->
+                {% if user_groups %}
+                <div class="mb-3">
+                    <h6>Groupes :</h6>
+                    {% for group in user_groups %}
+                        <span class="badge bg-light text-dark me-1">{{ group.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Permissions détaillées -->
+                <h6>Accès aux modules :</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        {% if permissions.can_manage_finances %}
+                            <i class="fas fa-check text-success"></i>
+                        {% else %}
+                            <i class="fas fa-times text-danger"></i>
+                        {% endif %}
+                        <strong>Finances</strong>
+                        {% if permissions.can_import_excel %}
+                            <br><small class="text-muted ms-3">+ Import Excel</small>
+                        {% endif %}
+                    </li>
+                    <li class="mb-2">
+                        {% if permissions.can_manage_quotes %}
+                            <i class="fas fa-check text-success"></i>
+                        {% else %}
+                            <i class="fas fa-times text-danger"></i>
+                        {% endif %}
+                        <strong>Devis & Clients</strong>
+                    </li>
+                    <li class="mb-2">
+                        {% if permissions.can_manage_recipes %}
+                            <i class="fas fa-check text-success"></i>
+                        {% else %}
+                            <i class="fas fa-times text-danger"></i>
+                        {% endif %}
+                        <strong>Recettes</strong>
+                    </li>
+                    <li class="mb-2">
+                        {% if permissions.can_access_admin %}
+                            <i class="fas fa-check text-success"></i>
+                        {% else %}
+                            <i class="fas fa-times text-danger"></i>
+                        {% endif %}
+                        <strong>Administration</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions rapides -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6><i class="fas fa-bolt"></i> Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if permissions.is_admin %}
+                    <a href="{% url 'accounts:users_management' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-users-cog"></i> Gérer les utilisateurs
+                    </a>
+                    <a href="/admin/" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-cog"></i> Administration Django
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'accounts:logout' %}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-sign-out-alt"></i> Se déconnecter
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistiques personnelles -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6><i class="fas fa-chart-pie"></i> Mes statistiques</h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>Dernière connexion :</strong><br>
+                    {{ user.last_login|date:"d/m/Y à H:i"|default:"Jamais" }}
+                </small>
+                <hr>
+                <small class="text-muted">
+                    <strong>Compte créé le :</strong><br>
+                    {{ user.date_joined|date:"d/m/Y à H:i" }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+                

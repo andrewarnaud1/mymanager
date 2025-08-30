@@ -1,0 +1,156 @@
+<!-- templates/recipes/recipe_detail.html -->
+{% extends 'base.html' %} {% block title %}{{ recipe.name }} - Gestion
+Restaurant{% endblock %} {% block content %}
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card">
+      <div
+        class="card-header d-flex justify-content-between align-items-center"
+      >
+        <h3><i class="fas fa-book"></i> {{ recipe.name }}</h3>
+        <div>
+          <a
+            href="{% url 'recipes:update' recipe.pk %}"
+            class="btn btn-outline-primary btn-sm"
+          >
+            <i class="fas fa-edit"></i> Modifier
+          </a>
+          <a
+            href="{% url 'recipes:delete' recipe.pk %}"
+            class="btn btn-outline-danger btn-sm"
+          >
+            <i class="fas fa-trash"></i> Supprimer
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if recipe.description %}
+        <p class="text-muted">{{ recipe.description }}</p>
+        {% endif %}
+
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <strong>Portions:</strong><br />
+            <span class="badge bg-primary">{{ recipe.servings }}</span>
+          </div>
+          <div class="col-md-3">
+            <strong>Préparation:</strong><br />
+            <span class="badge bg-info"
+              >{{ recipe.preparation_time|default:"?" }}min</span
+            >
+          </div>
+          <div class="col-md-3">
+            <strong>Cuisson:</strong><br />
+            <span class="badge bg-warning"
+              >{{ recipe.cooking_time|default:"?" }}min</span
+            >
+          </div>
+          <div class="col-md-3">
+            <strong>Total:</strong><br />
+            <span class="badge bg-secondary">{{ recipe.total_time }}min</span>
+          </div>
+        </div>
+
+        <h5>Ingrédients</h5>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Ingrédient</th>
+                <th>Quantité utilisée</th>
+                <th>Prix d'achat</th>
+                <th>Coût calculé</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in ingredients %}
+              <tr>
+                <td>{{ item.ingredient.name }}</td>
+                <td>{{ item.quantity }} {{ item.get_unit_display }}</td>
+                <td>
+                  {{ item.ingredient.unit_price }}€/{{ item.ingredient.get_unit_display }}
+                  <br /><small class="text-muted">
+                    ({{ item.ingredient.get_price_per_base_unit|floatformat:4 }}€ par 
+                    {% if item.ingredient.unit in 'g,kg' %}
+                      g
+                    {% elif item.ingredient.unit in 'ml,cl,l' %}
+                      ml
+                    {% else %}
+                      pièce
+                    {% endif %})
+                  </small>
+                </td>
+                <td>
+                  <strong class="text-success"
+                    >{{ item.cost|floatformat:3 }}€</strong
+                  >
+                </td>
+              </tr>
+              {% endfor %}
+              <tr class="table-warning">
+                <td colspan="3"><strong>Total</strong></td>
+                <td><strong>{{ recipe.total_cost|floatformat:2 }}€</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {% if recipe.instructions %}
+        <h5>Instructions</h5>
+        <div class="bg-light p-3 rounded">
+          {{ recipe.instructions|linebreaks }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <h5><i class="fas fa-calculator"></i> Analyse des coûts</h5>
+      </div>
+      <div class="card-body">
+        <div class="row text-center mb-3">
+          <div class="col-12 mb-3">
+            <h4 class="text-success">{{ recipe.total_cost|floatformat:2 }}€</h4>
+            <small class="text-muted">Coût total</small>
+          </div>
+          <div class="col-12">
+            <h5 class="text-primary">
+              {{ recipe.cost_per_serving|floatformat:2 }}€
+            </h5>
+            <small class="text-muted">Coût par portion</small>
+          </div>
+        </div>
+
+        <hr />
+
+        <h6>Suggestions de marge</h6>
+        <div class="small">
+          {% with cost=recipe.cost_per_serving %}
+          <div class="d-flex justify-content-between">
+            <span>Marge 100%:</span>
+            <strong>{{ cost|floatformat:2|add:cost|floatformat:2 }}€</strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span>Marge 150%:</span>
+            <strong>{% widthratio cost 1 2.5 %}€</strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span>Marge 200%:</span>
+            <strong>{% widthratio cost 1 3 %}€</strong>
+          </div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <a href="{% url 'recipes:list' %}" class="btn btn-secondary w-100">
+        <i class="fas fa-arrow-left"></i> Retour aux recettes
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

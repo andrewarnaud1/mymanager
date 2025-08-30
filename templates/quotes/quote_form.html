@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Gestion Restaurant{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h4><i class="fas fa-file-invoice"></i> {{ title }}</h4>
+    </div>
+    <div class="card-body">
+        <form method="post" id="quote-form">
+            {% csrf_token %}
+            
+            <!-- Informations de base -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.customer.id_for_label }}" class="form-label">
+                            Client <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            {{ form.customer }}
+                            <a href="{% url 'quotes:customer_create' %}" class="btn btn-outline-secondary" target="_blank">
+                                <i class="fas fa-plus"></i>
+                            </a>
+                        </div>
+                        {% if form.customer.errors %}
+                            <div class="text-danger small">{{ form.customer.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">
+                            Objet du devis <span class="text-danger">*</span>
+                        </label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-danger small">{{ form.title.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.description.id_for_label }}" class="form-label">
+                    Description
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Dates -->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="{{ form.quote_date.id_for_label }}" class="form-label">
+                            Date du devis <span class="text-danger">*</span>
+                        </label>
+                        {{ form.quote_date }}
+                        {% if form.quote_date.errors %}
+                            <div class="text-danger small">{{ form.quote_date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="{{ form.valid_until.id_for_label }}" class="form-label">
+                            Valable jusqu'au <span class="text-danger">*</span>
+                        </label>
+                        {{ form.valid_until }}
+                        {% if form.valid_until.errors %}
+                            <div class="text-danger small">{{ form.valid_until.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="{{ form.event_date.id_for_label }}" class="form-label">
+                            Date de l'événement
+                        </label>
+                        {{ form.event_date }}
+                        {% if form.event_date.errors %}
+                            <div class="text-danger small">{{ form.event_date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Prestations -->
+            <h5 class="mt-4">Prestations</h5>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Astuce :</strong> Sélectionnez vos recettes et ajustez les prix. Les coûts de revient sont calculés automatiquement.
+            </div>
+            
+            {{ formset.management_form }}
+            <div id="quote-items-formset">
+                {% for form in formset %}
+                    <div class="quote-item-form border rounded p-3 mb-3">
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+                        
+                        {% for hidden in form.hidden_fields %}
+                            {{ hidden }}
+                        {% endfor %}
+                        
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Recette</label>
+                                {{ form.recipe }}
+                                {% if form.recipe.errors %}
+                                    <div class="text-danger small">{{ form.recipe.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Quantité</label>
+                                {{ form.quantity }}
+                                {% if form.quantity.errors %}
+                                    <div class="text-danger small">{{ form.quantity.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Prix unitaire (€)</label>
+                                {{ form.unit_price }}
+                                {% if form.unit_price.errors %}
+                                    <div class="text-danger small">{{ form.unit_price.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Total ligne</label>
+                                <input type="text" class="form-control line-total" readonly placeholder="0.00€">
+                                <small class="text-muted">Coût: <span class="line-cost">0.00€</span></small>
+                            </div>
+                            <div class="col-md-1 d-flex align-items-end">
+                                {% if form.DELETE %}
+                                    <div class="form-check">
+                                        {{ form.DELETE }}
+                                        <label class="form-check-label text-danger small">Suppr.</label>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-2">
+                            <div class="col-12">
+                                <label class="form-label">Description personnalisée (optionnel)</label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" id="add-item" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-plus"></i> Ajouter une prestation
+            </button>
+            
+            <!-- Paramètres financiers -->
+            <h5 class="mt-4">Paramètres financiers</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.discount_percentage.id_for_label }}" class="form-label">
+                            Remise (%)
+                        </label>
+                        {{ form.discount_percentage }}
+                        {% if form.discount_percentage.errors %}
+                            <div class="text-danger small">{{ form.discount_percentage.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="{{ form.tax_rate.id_for_label }}" class="form-label">
+                            Taux TVA (%)
+                        </label>
+                        {{ form.tax_rate }}
+                        {% if form.tax_rate.errors %}
+                            <div class="text-danger small">{{ form.tax_rate.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Récapitulatif -->
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6>Récapitulatif</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Sous-total HT:</td>
+                                    <td class="text-end"><span id="subtotal">0.00€</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Remise:</td>
+                                    <td class="text-end">-<span id="discount">0.00€</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Net HT:</td>
+                                    <td class="text-end"><span id="net-ht">0.00€</span></td>
+                                </tr>
+                                <tr>
+                                    <td>TVA:</td>
+                                    <td class="text-end">+<span id="tax">0.00€</span></td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Total TTC:</strong></td>
+                                    <td class="text-end"><strong><span id="total">0.00€</span></strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Coût total:</td>
+                                    <td class="text-end"><span id="total-cost">0.00€</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Marge:</td>
+                                    <td class="text-end text-success"><span id="margin">0.00€</span></td>
+                                </tr>
+                                <tr>
+                                    <td>% Marge:</td>
+                                    <td class="text-end text-success"><span id="margin-percent">0%</span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Conditions -->
+            <div class="mb-4 mt-3">
+                <label for="{{ form.terms_conditions.id_for_label }}" class="form-label">
+                    Conditions particulières
+                </label>
+                {{ form.terms_conditions }}
+                {% if form.terms_conditions.errors %}
+                    <div class="text-danger small">{{ form.terms_conditions.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Boutons -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+                <a href="{% url 'quotes:list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </a>
+                {% if quote %}
+                    <a href="{% url 'quotes:detail' quote.pk %}" class="btn btn-outline-info">
+                        <i class="fas fa-eye"></i> Voir le devis
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Données des recettes pour les calculs JS
+const recipeData = {
+    {% for recipe in formset.form.base_fields.recipe.queryset %}
+    {{ recipe.pk }}: {
+        name: "{{ recipe.name|escapejs }}",
+        cost: parseFloat("{{ recipe.cost_per_serving }}"),
+        suggested_price: parseFloat("{{ recipe.cost_per_serving }}") * 2.5
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Fonction pour calculer les totaux
+    function calculateTotals() {
+        let subtotal = 0;
+        let totalCost = 0;
+        
+        document.querySelectorAll('.quote-item-form').forEach(function(form) {
+            const quantityInput = form.querySelector('[name$="-quantity"]');
+            const priceInput = form.querySelector('[name$="-unit_price"]');
+            const recipeSelect = form.querySelector('[name$="-recipe"]');
+            const lineTotalElement = form.querySelector('.line-total');
+            const lineCostElement = form.querySelector('.line-cost');
+            
+            if (quantityInput && priceInput && recipeSelect && lineTotalElement && lineCostElement) {
+                const quantity = parseFloat(quantityInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                const recipeId = recipeSelect.value;
+                
+                const lineTotal = quantity * price;
+                const lineCost = recipeId && recipeData[recipeId] ? 
+                    quantity * recipeData[recipeId].cost : 0;
+                
+                lineTotalElement.value = lineTotal.toFixed(2) + '€';
+                lineCostElement.textContent = lineCost.toFixed(2) + '€';
+                
+                subtotal += lineTotal;
+                totalCost += lineCost;
+            }
+        });
+        
+        // Calcul des totaux finaux
+        const discountInput = document.querySelector('[name="discount_percentage"]');
+        const taxInput = document.querySelector('[name="tax_rate"]');
+        
+        const discountRate = discountInput ? parseFloat(discountInput.value) || 0 : 0;
+        const taxRate = taxInput ? parseFloat(taxInput.value) || 0 : 0;
+        
+        const discountAmount = subtotal * (discountRate / 100);
+        const netHT = subtotal - discountAmount;
+        const taxAmount = netHT * (taxRate / 100);
+        const totalTTC = netHT + taxAmount;
+        const margin = netHT - totalCost;
+        const marginPercent = totalCost > 0 ? (margin / totalCost) * 100 : 0;
+        
+        // Mise à jour de l'affichage (avec vérification d'existence)
+        const elements = {
+            'subtotal': subtotal.toFixed(2) + '€',
+            'discount': discountAmount.toFixed(2) + '€',
+            'net-ht': netHT.toFixed(2) + '€',
+            'tax': taxAmount.toFixed(2) + '€',
+            'total': totalTTC.toFixed(2) + '€',
+            'total-cost': totalCost.toFixed(2) + '€',
+            'margin': margin.toFixed(2) + '€',
+            'margin-percent': marginPercent.toFixed(1) + '%'
+        };
+        
+        Object.keys(elements).forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = elements[id];
+            }
+        });
+    }
+    
+    // Auto-complétion du prix suggéré
+    document.addEventListener('change', function(e) {
+        if (e.target.name && e.target.name.includes('-recipe')) {
+            const form = e.target.closest('.quote-item-form');
+            const priceInput = form ? form.querySelector('[name$="-unit_price"]') : null;
+            const recipeId = e.target.value;
+            
+            if (recipeId && recipeData[recipeId] && priceInput && !priceInput.value) {
+                priceInput.value = recipeData[recipeId].suggested_price.toFixed(2);
+                calculateTotals(); // Recalculer après la mise à jour
+            }
+        }
+    });
+    
+    // Calcul en temps réel
+    document.addEventListener('input', calculateTotals);
+    document.addEventListener('change', calculateTotals);
+    
+    // Calcul initial
+    setTimeout(calculateTotals, 100);
+    
+    // Bouton ajouter prestation
+    const addButton = document.getElementById('add-item');
+    if (addButton) {
+        addButton.addEventListener('click', function() {
+            const totalForms = document.querySelector('#id_quote_items-TOTAL_FORMS');
+            if (!totalForms) return;
+            
+            const formNum = parseInt(totalForms.value);
+            
+            if (formNum < 10) {
+                const firstForm = document.querySelector('.quote-item-form');
+                if (!firstForm) return;
+                
+                const newForm = firstForm.cloneNode(true);
+                
+                // Mettre à jour les attributs
+                newForm.innerHTML = newForm.innerHTML.replace(/quote_items-\d+-/g, `quote_items-${formNum}-`);
+                newForm.querySelectorAll('input, select, textarea').forEach(input => {
+                    input.value = '';
+                    input.checked = false;
+                });
+                
+                // Ajouter le nouveau formulaire
+                const formset = document.getElementById('quote-items-formset');
+                if (formset) {
+                    formset.appendChild(newForm);
+                    totalForms.value = formNum + 1;
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

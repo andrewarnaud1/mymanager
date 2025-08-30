@@ -1,0 +1,275 @@
+<!-- templates/finances/dashboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Finances - Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-line"></i> Dashboard Finances</h2>
+    <div class="btn-group">
+        <a href="{% url 'finances:sale_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouvelle vente
+        </a>
+        <a href="{% url 'finances:excel_import' %}" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Import Excel
+        </a>
+    </div>
+</div>
+
+<!-- KPIs du mois -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5>CA du mois</h5>
+                        <h3>{{ ca_mois|floatformat:2 }}€</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-euro-sign fa-2x"></i>
+                    </div>
+                </div>
+                {% if evolution != 0 %}
+                <small>
+                    {% if evolution > 0 %}
+                        <i class="fas fa-arrow-up"></i> +{{ evolution|floatformat:1 }}%
+                    {% else %}
+                        <i class="fas fa-arrow-down"></i> {{ evolution|floatformat:1 }}%
+                    {% endif %}
+                    vs mois précédent
+                </small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5>CA moyen/jour</h5>
+                        <h3>{{ ca_moyen_jour|floatformat:2 }}€</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-day fa-2x"></i>
+                    </div>
+                </div>
+                <small>Sur {{ nb_jours_mois }} jours d'ouverture</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5>Jours ce mois</h5>
+                        <h3>{{ nb_jours_mois }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-store fa-2x"></i>
+                    </div>
+                </div>
+                <small>Jours d'ouverture</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5>Écarts</h5>
+                        <h3>{{ ecarts_significatifs.count }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                    </div>
+                </div>
+                <small>Écarts significatifs</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique des ventes -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-area"></i> Évolution des ventes (30 derniers jours)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-circle"></i> Écarts récents</h5>
+            </div>
+            <div class="card-body">
+                {% if ecarts_significatifs %}
+                    {% for vente in ecarts_significatifs %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <small>{{ vente.date|date:"d/m" }}</small>
+                        <span class="badge {% if vente.ecart_total > 0 %}bg-info{% else %}bg-danger{% endif %}">
+                            {{ vente.ecart_total|floatformat:2 }}€
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center">Aucun écart significatif</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dernières ventes et résumés mensuels -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <h5><i class="fas fa-clock"></i> Dernières ventes</h5>
+                <a href="{% url 'finances:sales_list' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+            </div>
+            <div class="card-body">
+                {% if dernières_ventes %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>CA</th>
+                                    <th>Écart</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vente in dernières_ventes %}
+                                <tr>
+                                    <td>{{ vente.date|date:"d/m/Y" }}</td>
+                                    <td><strong>{{ vente.total_journalier|floatformat:2 }}€</strong></td>
+                                    <td>
+                                        {% if vente.ecart_total == 0 %}
+                                            <span class="text-success">0€</span>
+                                        {% elif vente.ecart_total > 0 %}
+                                            <span class="text-info">+{{ vente.ecart_total|floatformat:2 }}€</span>
+                                        {% else %}
+                                            <span class="text-danger">{{ vente.ecart_total|floatformat:2 }}€</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Aucune vente enregistrée</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <h5><i class="fas fa-calendar-alt"></i> Résumés mensuels</h5>
+                <a href="{% url 'finances:monthly_reports' %}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+            </div>
+            <div class="card-body">
+                {% if resumes_mensuels %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Période</th>
+                                    <th>CA Total</th>
+                                    <th>Jours</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for resume in resumes_mensuels %}
+                                <tr>
+                                    <td>{{ resume.get_mois_display }} {{ resume.annee }}</td>
+                                    <td><strong>{{ resume.total_ca|floatformat:2 }}€</strong></td>
+                                    <td>{{ resume.jours_ouverture }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Aucun résumé mensuel</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Graphique des ventes
+const ctx = document.getElementById('salesChart').getContext('2d');
+const salesData = [
+    {% for vente in ventes_graph %}
+    {
+        x: '{{ vente.date|date:"Y-m-d" }}',
+        y: {{ vente.total_journalier|default:0 }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        datasets: [{
+            label: 'Chiffre d\'affaires',
+            data: salesData,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.1,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                type: 'time',
+                time: {
+                    unit: 'day',
+                    displayFormats: {
+                        day: 'DD/MM'
+                    }
+                }
+            },
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value + '€';
+                    }
+                }
+            }
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'CA: ' + context.parsed.y.toFixed(2) + '€';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,263 @@
+<!-- templates/finances/excel_import.html -->
+{% extends 'base.html' %}
+
+{% block title %}Import Excel - Finances{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-file-excel"></i> Import depuis Excel</h4>
+            </div>
+            <div class="card-body">
+                <!-- Instructions -->
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> Instructions d'import</h6>
+                    <ul class="mb-0">
+                        <li>Le fichier Excel doit contenir une feuille par mois</li>
+                        <li>Colonnes attendues: DATE, CB CAISSE, CB TPE, ESPECES CAISSE, ESPECES REEL, TICKETS RESTAU CAISSE, TICKETS RESTAU REEL, TOTAL, Commentaires</li>
+                        <li>Les colonnes optionnelles: NOMBRE DE CLIENTS, TICKET MOYEN</li>
+                        <li>Format de fichier accepté: .xlsx</li>
+                        <li>Taille maximum: 10MB</li>
+                    </ul>
+                </div>
+
+                <!-- Formulaire d'import -->
+                <form method="post" enctype="multipart/form-data" id="import-form">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.file.id_for_label }}" class="form-label">
+                            {{ form.file.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.file }}
+                        <div class="form-text">{{ form.file.help_text }}</div>
+                        {% if form.file.errors %}
+                            <div class="text-danger small">{{ form.file.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.overwrite_existing }}
+                            <label class="form-check-label" for="{{ form.overwrite_existing.id_for_label }}">
+                                {{ form.overwrite_existing.label }}
+                            </label>
+                            <div class="form-text">{{ form.overwrite_existing.help_text }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success" id="import-btn">
+                            <i class="fas fa-upload"></i> Importer
+                        </button>
+                        <a href="{% url 'finances:dashboard' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Retour au dashboard
+                        </a>
+                    </div>
+                    
+                    <!-- Barre de progression -->
+                    <div id="progress-container" class="mt-3" style="display: none;">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%">
+                                <span id="progress-text">Import en cours...</span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Historique des imports -->
+        {% if import_logs %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-history"></i> Historique des imports</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Fichier</th>
+                                <th>Date</th>
+                                <th>Statut</th>
+                                <th>Créés</th>
+                                <th>Mis à jour</th>
+                                <th>Ignorés</th>
+                                <th>Erreurs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in import_logs %}
+                            <tr>
+                                <td>{{ log.filename }}</td>
+                                <td>{{ log.imported_at|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if log.success %}
+                                        <span class="badge bg-success">✓ Réussi</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">✗ Échec</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.nb_records_created }}</td>
+                                <td>{{ log.nb_records_updated }}</td>
+                                <td>{{ log.nb_records_skipped }}</td>
+                                <td>
+                                    {% if log.errors %}
+                                        <button class="btn btn-sm btn-outline-warning" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#errors-{{ log.pk }}">
+                                            Voir erreurs
+                                        </button>
+                                        <div class="collapse mt-2" id="errors-{{ log.pk }}">
+                                            <div class="alert alert-warning small">
+                                                <pre>{{ log.errors }}</pre>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">Aucune</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Aide et format attendu -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-question-circle"></i> Format attendu</h5>
+            </div>
+            <div class="card-body">
+                <p>Votre fichier Excel doit respecter le format suivant :</p>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>DATE</th>
+                                <th>CB CAISSE</th>
+                                <th>CB TPE</th>
+                                <th>ESPECES CAISSE</th>
+                                <th>ESPECES REEL</th>
+                                <th>TICKETS RESTAU CAISSE</th>
+                                <th>TICKETS RESTAU REEL</th>
+                                <th>TOTAL</th>
+                                <th>Commentaires</th>
+                                <th>NOMBRE DE CLIENTS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-light">
+                                <td>2025-01-15</td>
+                                <td>250.50</td>
+                                <td>250.50</td>
+                                <td>45.20</td>
+                                <td>45.20</td>
+                                <td>25.00</td>
+                                <td>25.00</td>
+                                <td>320.70</td>
+                                <td>Journée normale</td>
+                                <td>28</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <h6>Notes importantes :</h6>
+                    <ul>
+                        <li><strong>DATE :</strong> Format AAAA-MM-JJ ou date Excel standard</li>
+                        <li><strong>Montants :</strong> Valeurs numériques avec point comme séparateur décimal</li>
+                        <li><strong>Valeurs vides :</strong> Les cellules vides sont autorisées</li>
+                        <li><strong>Feuilles multiples :</strong> Une feuille par mois (nom de feuille libre)</li>
+                        <li><strong>Colonnes optionnelles :</strong> NOMBRE DE CLIENTS et TICKET MOYEN peuvent être omises</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('import-form');
+    const importBtn = document.getElementById('import-btn');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = progressContainer.querySelector('.progress-bar');
+    const progressText = document.getElementById('progress-text');
+    
+    form.addEventListener('submit', function(e) {
+        // Validation côté client
+        const fileInput = document.getElementById('{{ form.file.id_for_label }}');
+        if (!fileInput.files.length) {
+            e.preventDefault();
+            alert('Veuillez sélectionner un fichier Excel.');
+            return;
+        }
+        
+        const file = fileInput.files[0];
+        if (!file.name.toLowerCase().endsWith('.xlsx') && !file.name.toLowerCase().endsWith('.xls')) {
+            e.preventDefault();
+            alert('Veuillez sélectionner un fichier Excel (.xlsx ou .xls).');
+            return;
+        }
+        
+        if (file.size > 10 * 1024 * 1024) {
+            e.preventDefault();
+            alert('Le fichier est trop volumineux. Taille maximum : 10MB.');
+            return;
+        }
+        
+        // Afficher la barre de progression
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Import en cours...';
+        progressContainer.style.display = 'block';
+        
+        // Animation de la barre de progression
+        let progress = 0;
+        const interval = setInterval(function() {
+            progress += Math.random() * 15;
+            if (progress > 95) {
+                progress = 95;
+                clearInterval(interval);
+            }
+            progressBar.style.width = progress + '%';
+        }, 500);
+        
+        // Le formulaire se soumet normalement
+        // La page sera rechargée avec le résultat
+    });
+    
+    // Prévisualisation du fichier sélectionné
+    const fileInput = document.getElementById('{{ form.file.id_for_label }}');
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const fileInfo = document.createElement('div');
+            fileInfo.className = 'alert alert-secondary mt-2';
+            fileInfo.innerHTML = `
+                <strong>Fichier sélectionné :</strong> ${file.name}<br>
+                <strong>Taille :</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                <strong>Type :</strong> ${file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}
+            `;
+            
+            // Supprimer l'ancienne info si elle existe
+            const existingInfo = this.parentNode.querySelector('.alert-secondary');
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+            
+            this.parentNode.appendChild(fileInfo);
+        }
+    });
+});
+</script>
+{% endblock %}

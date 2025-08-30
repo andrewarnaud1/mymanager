@@ -1,0 +1,87 @@
+<!-- templates/finances/sale_confirm_delete.html -->
+{% extends 'base.html' %}
+
+{% block title %}Supprimer vente - Finances{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4><i class="fas fa-exclamation-triangle"></i> Confirmer la suppression</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <h5>Attention !</h5>
+                    <p>Vous êtes sur le point de supprimer définitivement la vente du <strong>{{ sale.date|date:"d/m/Y" }}</strong>.</p>
+                </div>
+                
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6>Détails de la vente à supprimer :</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li><strong>Date :</strong> {{ sale.date|date:"d/m/Y" }}</li>
+                                    <li><strong>CA Total :</strong> {{ sale.total_journalier|floatformat:2 }}€</li>
+                                    <li><strong>CB :</strong> {{ sale.chiffre_affaires_cb|floatformat:2 }}€</li>
+                                    <li><strong>Espèces :</strong> {{ sale.chiffre_affaires_especes|floatformat:2 }}€</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li><strong>TR :</strong> {{ sale.chiffre_affaires_tr|floatformat:2 }}€</li>
+                                    <li><strong>Écart :</strong> 
+                                        {% if sale.ecart_total == 0 %}
+                                            <span class="text-success">0€</span>
+                                        {% elif sale.ecart_total > 0 %}
+                                            <span class="text-info">+{{ sale.ecart_total|floatformat:2 }}€</span>
+                                        {% else %}
+                                            <span class="text-danger">{{ sale.ecart_total|floatformat:2 }}€</span>
+                                        {% endif %}
+                                    </li>
+                                    {% if sale.nombre_clients %}
+                                    <li><strong>Clients :</strong> {{ sale.nombre_clients }}</li>
+                                    {% endif %}
+                                    {% if sale.imported_from_excel %}
+                                    <li><span class="badge bg-success">Importé d'Excel</span></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        {% if sale.commentaires %}
+                        <div class="mt-2">
+                            <strong>Commentaires :</strong><br>
+                            <em class="text-muted">{{ sale.commentaires }}</em>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Conséquences de la suppression :</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Cette vente sera définitivement supprimée de la base de données</li>
+                        <li>Les résumés mensuels seront automatiquement recalculés</li>
+                        <li>Cette action est irréversible</li>
+                    </ul>
+                </div>
+                
+                <div class="d-flex gap-2 justify-content-end mt-4">
+                    <a href="{% url 'finances:sales_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Oui, supprimer définitivement
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

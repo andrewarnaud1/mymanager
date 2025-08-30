@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ quote.quote_number }} - Gestion Restaurant{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Informations principales -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4><i class="fas fa-file-invoice"></i> {{ quote.quote_number }}</h4>
+                <div>
+                    {% if quote.status == 'draft' %}
+                        <span class="badge bg-secondary">Brouillon</span>
+                    {% elif quote.status == 'sent' %}
+                        <span class="badge bg-info">Envoyé</span>
+                    {% elif quote.status == 'accepted' %}
+                        <span class="badge bg-success">Accepté</span>
+                    {% elif quote.status == 'declined' %}
+                        <span class="badge bg-danger">Refusé</span>
+                    {% elif quote.status == 'expired' %}
+                        <span class="badge bg-warning">Expiré</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- En-tête du devis -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5>Client</h5>
+                        <p class="mb-1"><strong>{{ quote.customer.name }}</strong></p>
+                        {% if quote.customer.company %}
+                            <p class="mb-1">{{ quote.customer.company }}</p>
+                        {% endif %}
+                        {% if quote.customer.email %}
+                            <p class="mb-1"><i class="fas fa-envelope"></i> {{ quote.customer.email }}</p>
+                        {% endif %}
+                        {% if quote.customer.phone %}
+                            <p class="mb-1"><i class="fas fa-phone"></i> {{ quote.customer.phone }}</p>
+                        {% endif %}
+                        {% if quote.customer.full_address %}
+                            <p class="small text-muted">{{ quote.customer.full_address }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Devis</h5>
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td><strong>Objet:</strong></td>
+                                <td>{{ quote.title }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Date:</strong></td>
+                                <td>{{ quote.quote_date|date:"d/m/Y" }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Valable jusqu'au:</strong></td>
+                                <td>{{ quote.valid_until|date:"d/m/Y" }}</td>
+                            </tr>
+                            {% if quote.event_date %}
+                            <tr>
+                                <td><strong>Événement:</strong></td>
+                                <td>{{ quote.event_date|date:"d/m/Y" }}</td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+                
+                {% if quote.description %}
+                    <div class="mb-4">
+                        <h6>Description</h6>
+                        <p class="text-muted">{{ quote.description|linebreaks }}</p>
+                    </div>
+                {% endif %}
+                
+                <!-- Prestations -->
+                <h6>Prestations</h6>
+                <div class="table-responsive mb-4">
+                    <table class="table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Prestation</th>
+                                <th>Quantité</th>
+                                <th>Prix unitaire</th>
+                                <th>Total</th>
+                                <th>Coût</th>
+                                <th>Marge</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.recipe.name }}</strong>
+                                    {% if item.description %}
+                                        <br><small class="text-muted">{{ item.description }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.quantity }} portions</td>
+                                <td>{{ item.unit_price|floatformat:2 }}€</td>
+                                <td><strong>{{ item.total_price|floatformat:2 }}€</strong></td>
+                                <td class="text-muted">{{ item.total_cost|floatformat:2 }}€</td>
+                                <td class="text-success">{{ item.total_margin|floatformat:2 }}€</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="3">Sous-total HT</th>
+                                <th>{{ quote.subtotal|floatformat:2 }}€</th>
+                                <th>{{ quote.total_cost|floatformat:2 }}€</th>
+                                <th>{{ quote.profit_margin|floatformat:2 }}€</th>
+                            </tr>
+                            {% if quote.discount_percentage > 0 %}
+                            <tr>
+                                <th colspan="3">Remise ({{ quote.discount_percentage }}%)</th>
+                                <th class="text-danger">-{{ quote.discount_amount|floatformat:2 }}€</th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                            <tr>
+                                <th colspan="3">Net HT</th>
+                                <th>{{ quote.subtotal_after_discount|floatformat:2 }}€</th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th colspan="3">TVA ({{ quote.tax_rate }}%)</th>
+                                <th>+{{ quote.tax_amount|floatformat:2 }}€</th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                            <tr class="table-success">
+                                <th colspan="3"><strong>Total TTC</strong></th>
+                                <th><strong>{{ quote.total_amount|floatformat:2 }}€</strong></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                {% if quote.terms_conditions %}
+                    <h6>Conditions particulières</h6>
+                    <div class="bg-light p-3 rounded">
+                        {{ quote.terms_conditions|linebreaks }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Actions et informations complémentaires -->
+    <div class="col-lg-4">
+        <!-- Actions -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6><i class="fas fa-cog"></i> Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'quotes:update' quote.pk %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> Modifier le devis
+                    </a>
+                    <a href="{% url 'quotes:pdf' quote.pk %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-pdf"></i> Télécharger PDF
+                    </a>
+                    <a href="{% url 'quotes:duplicate' quote.pk %}" class="btn btn-outline-success">
+                        <i class="fas fa-copy"></i> Dupliquer
+                    </a>
+                    
+                    <hr>
+                    
+                    <!-- Changement de statut -->
+                    {% if quote.status == 'draft' %}
+                        <form method="post" action="{% url 'quotes:change_status' quote.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="sent">
+                            <button type="submit" class="btn btn-info w-100">
+                                <i class="fas fa-paper-plane"></i> Marquer comme envoyé
+                            </button>
+                        </form>
+                    {% elif quote.status == 'sent' %}
+                        <form method="post" action="{% url 'quotes:change_status' quote.pk %}" class="mb-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="accepted">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-check"></i> Marquer comme accepté
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'quotes:change_status' quote.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="declined">
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="fas fa-times"></i> Marquer comme refusé
+                            </button>
+                        </form>
+                    {% elif quote.status == 'accepted' %}
+                        <div class="alert alert-success text-center">
+                            <i class="fas fa-check-circle"></i><br>
+                            <strong>Devis accepté !</strong>
+                        </div>
+                    {% elif quote.status == 'declined' %}
+                        <div class="alert alert-danger text-center">
+                            <i class="fas fa-times-circle"></i><br>
+                            <strong>Devis refusé</strong>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analyse financière -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6><i class="fas fa-chart-line"></i> Analyse financière</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-12 mb-2">
+                        <h5 class="text-success">{{ quote.total_amount|floatformat:2 }}€</h5>
+                        <small class="text-muted">Chiffre d'affaires TTC</small>
+                    </div>
+                </div>
+                
+                <table class="table table-sm">
+                    <tr>
+                        <td>Coût total:</td>
+                        <td class="text-end">{{ quote.total_cost|floatformat:2 }}€</td>
+                    </tr>
+                    <tr>
+                        <td>Marge brute:</td>
+                        <td class="text-end text-success">{{ quote.profit_margin|floatformat:2 }}€</td>
+                    </tr>
+                    <tr>
+                        <td>% Marge:</td>
+                        <td class="text-end text-success">{{ quote.profit_margin_percentage|floatformat:1 }}%</td>
+                    </tr>
+                </table>
+                
+                <!-- Indicateur de rentabilité -->
+                {% if quote.profit_margin_percentage > 100 %}
+                    <div class="alert alert-success small">
+                        <i class="fas fa-thumbs-up"></i> Excellente marge
+                    </div>
+                {% elif quote.profit_margin_percentage > 50 %}
+                    <div class="alert alert-info small">
+                        <i class="fas fa-check"></i> Bonne marge
+                    </div>
+                {% elif quote.profit_margin_percentage > 20 %}
+                    <div class="alert alert-warning small">
+                        <i class="fas fa-exclamation-triangle"></i> Marge correcte
+                    </div>
+                {% else %}
+                    <div class="alert alert-danger small">
+                        <i class="fas fa-exclamation-circle"></i> Marge faible
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Informations sur le client -->
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-user"></i> Client</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong>{{ quote.customer.name }}</strong>
+                    {% if quote.customer.company %}
+                        <br><small class="text-muted">{{ quote.customer.company }}</small>
+                    {% endif %}
+                </p>
+                
+                <div class="small">
+                    <p class="mb-1">Devis totaux: <strong>{{ quote.customer.quote_set.count }}</strong></p>
+                    <p class="mb-1">Acceptés: <strong>{{ quote.customer.quote_set.all.count }}</strong></p>
+                </div>
+                
+                <div class="d-grid gap-1 mt-3">
+                    <a href="{% url 'quotes:customer_detail' quote.customer.pk %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye"></i> Voir le client
+                    </a>
+                    {% if quote.customer.email %}
+                        <a href="mailto:{{ quote.customer.email }}?subject=Devis {{ quote.quote_number }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-envelope"></i> Envoyer un email
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Boutons de navigation -->
+<div class="mt-4">
+    <a href="{% url 'quotes:list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Retour aux devis
+    </a>
+    {% if quote.customer %}
+        <a href="{% url 'quotes:customer_detail' quote.customer.pk %}" class="btn btn-outline-info">
+            <i class="fas fa-user"></i> Voir tous les devis de ce client
+        </a>
+    {% endif %}
+</div>
+
+<!-- Notes internes (si connecté) -->
+{% if quote.internal_notes and user.is_authenticated %}
+<div class="card mt-3">
+    <div class="card-header">
+        <h6><i class="fas fa-sticky-note"></i> Notes internes</h6>
+    </div>
+    <div class="card-body">
+        {{ quote.internal_notes|linebreaks }}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
