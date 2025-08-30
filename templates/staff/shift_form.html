@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="mb-0"><i class="fas fa-clock"></i> {{ title }}</h4>
+        <small class="text-muted">
+          Planning : {{ schedule.week_range_display }}
+        </small>
+      </div>
+      <div class="card-body">
+        <form method="post" id="shiftForm">
+          {% csrf_token %} {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <!-- Employé -->
+          <div class="mb-3">
+            <label for="{{ form.employee.id_for_label }}" class="form-label">
+              Employé <span class="text-danger">*</span>
+            </label>
+            {{ form.employee }} {% if form.employee.errors %}
+            <div class="text-danger small">{{ form.employee.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Date -->
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="{{ form.date.id_for_label }}" class="form-label">
+                Date <span class="text-danger">*</span>
+              </label>
+              {{ form.date }} {% if form.date.errors %}
+              <div class="text-danger small">{{ form.date.errors }}</div>
+              {% endif %}
+              <small class="form-text text-muted">
+                Doit être dans la semaine du
+                {{ schedule.week_start|date:"d/m/Y"}} au {{ schedule.week_end|date:"d/m/Y" }}
+              </small>
+            </div>
+
+            <!-- Heures -->
+            <div class="col-md-4">
+              <label
+                for="{{ form.start_time.id_for_label }}"
+                class="form-label"
+              >
+                Heure de début <span class="text-danger">*</span>
+              </label>
+              {{ form.start_time }} {% if form.start_time.errors %}
+              <div class="text-danger small">{{ form.start_time.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label for="{{ form.end_time.id_for_label }}" class="form-label">
+                Heure de fin <span class="text-danger">*</span>
+              </label>
+              {{ form.end_time }} {% if form.end_time.errors %}
+              <div class="text-danger small">{{ form.end_time.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Durée calculée -->
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <div
+                class="alert alert-info"
+                id="durationDisplay"
+                style="display: none"
+              >
+                <i class="fas fa-clock"></i> <strong>Durée :</strong>
+                <span id="durationText">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alerte de conflit -->
+          <div
+            class="alert alert-warning"
+            id="conflictAlert"
+            style="display: none"
+          >
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Conflit détecté !</strong>
+            <div id="conflictDetails"></div>
+          </div>
+
+          <!-- Notes -->
+          <div class="mb-3">
+            <label for="{{ form.notes.id_for_label }}" class="form-label"
+              >Notes</label
+            >
+            {{ form.notes }} {% if form.notes.errors %}
+            <div class="text-danger small">{{ form.notes.errors }}</div>
+            {% endif %}
+            <small class="form-text text-muted">
+              Notes optionnelles pour ce créneau (ex: pause déjeuner, formation,
+              etc.)
+            </small>
+          </div>
+
+          <!-- Créneaux existants de l'employé cette semaine -->
+          {% if shift and shift.employee %}
+          <div class="card bg-light mb-3">
+            <div class="card-body">
+              <h6>
+                <i class="fas fa-calendar-check"></i> Autres créneaux de {{
+                shift.employee.full_name }} cette semaine
+              </h6>
+              <div id="employeeExistingShifts">
+                <!-- Rempli par JavaScript -->
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Raccourcis horaires -->
+          <div class="card bg-light mb-3">
+            <div class="card-body">
+              <h6><i class="fas fa-magic"></i> Raccourcis horaires</h6>
+              <div class="btn-group-vertical w-100" role="group">
+                <div class="row">
+                  <div class="col-md-6">
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm mb-1 w-100"
+                      onclick="setHours('09:00', '17:00')"
+                    >
+                      9h00 - 17h00 (8h)
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm mb-1 w-100"
+                      onclick="setHours('08:00', '16:00')"
+                    >
+                      8h00 - 16h00 (8h)
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm mb-1 w-100"
+                      onclick="setHours('09:00', '13:00')"
+                    >
+                      9h00 - 13h00 (4h)
+                    </button>
+                  </div>
+                  <div class="col-md-6">
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm mb-1 w-100"
+                      onclick="setHours('14:00', '18:00')"
+                    >
+                      14h00 - 18h00 (4h)
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm mb-1 w-100"
+                      onclick="setHours('11:00', '14:00')"
+                    >
+                      11h00 - 14h00 (3h)
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm mb-1 w-100"
+                      onclick="setHours('18:00', '22:00')"
+                    >
+                      18h00 - 22h00 (4h)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Boutons -->
+          <div class="d-flex justify-content-between">
+            <a
+              href="{% url 'staff:schedule_detail' schedule.pk %}"
+              class="btn btn-secondary"
+            >
+              <i class="fas fa-arrow-left"></i> Retour au planning
+            </a>
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+              <i class="fas fa-save"></i>
+              {% if shift %}Modifier{% else %}Créer{% endif %} le créneau
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Variables globales
+  let conflictCheckTimeout;
+
+  // Raccourcis horaires
+  function setHours(startTime, endTime) {
+      document.getElementById('{{ form.start_time.id_for_label }}').value = startTime;
+      document.getElementById('{{ form.end_time.id_for_label }}').value = endTime;
+      calculateDuration();
+      checkConflicts();
+  }
+
+  // Calculer la durée
+  function calculateDuration() {
+      const startTime = document.getElementById('{{ form.start_time.id_for_label }}').value;
+      const endTime = document.getElementById('{{ form.end_time.id_for_label }}').value;
+
+      if (startTime && endTime) {
+          const start = new Date(`2000-01-01 ${startTime}`);
+          const end = new Date(`2000-01-01 ${endTime}`);
+
+          if (end > start) {
+              const diffMs = end - start;
+              const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+              const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+              let durationText = `${diffHours}h`;
+              if (diffMinutes > 0) {
+                  durationText += `${diffMinutes.toString().padStart(2, '0')}`;
+              }
+
+              document.getElementById('durationText').textContent = durationText;
+              document.getElementById('durationDisplay').style.display = 'block';
+          } else {
+              document.getElementById('durationDisplay').style.display = 'none';
+          }
+      } else {
+          document.getElementById('durationDisplay').style.display = 'none';
+      }
+  }
+
+  // Vérifier les conflits
+  function checkConflicts() {
+      const employeeId = document.getElementById('{{ form.employee.id_for_label }}').value;
+      const date = document.getElementById('{{ form.date.id_for_label }}').value;
+      const startTime = document.getElementById('{{ form.start_time.id_for_label }}').value;
+      const endTime = document.getElementById('{{ form.end_time.id_for_label }}').value;
+
+      if (!employeeId || !date || !startTime || !endTime) {
+          document.getElementById('conflictAlert').style.display = 'none';
+          return;
+      }
+
+      // Annuler la vérification précédente
+      if (conflictCheckTimeout) {
+          clearTimeout(conflictCheckTimeout);
+      }
+
+      // Délai pour éviter trop de requêtes
+      conflictCheckTimeout = setTimeout(() => {
+          const params = new URLSearchParams({
+              employee_id: employeeId,
+              date: date,
+              start_time: startTime,
+              end_time: endTime,
+              {% if shift %}exclude_id: {{ shift.pk }}{% endif %}
+          });
+
+          fetch(`/personnel/api/creneaux/conflits/?${params}`)
+              .then(response => response.json())
+              .then(data => {
+                  if (data.has_conflicts) {
+                      let conflictHtml = '<ul class="mb-0">';
+                      data.conflicts.forEach(conflict => {
+                          conflictHtml += `<li>${conflict.start_time} - ${conflict.end_time}`;
+                          if (conflict.notes) {
+                              conflictHtml += ` (${conflict.notes})`;
+                          }
+                          conflictHtml += '</li>';
+                      });
+                      conflictHtml += '</ul>';
+
+                      document.getElementById('conflictDetails').innerHTML = conflictHtml;
+                      document.getElementById('conflictAlert').style.display = 'block';
+                      document.getElementById('submitBtn').disabled = true;
+                  } else {
+                      document.getElementById('conflictAlert').style.display = 'none';
+                      document.getElementById('submitBtn').disabled = false;
+                  }
+              })
+              .catch(error => {
+                  console.error('Erreur lors de la vérification des conflits:', error);
+                  document.getElementById('conflictAlert').style.display = 'none';
+                  document.getElementById('submitBtn').disabled = false;
+              });
+      }, 500);
+  }
+
+  // Event listeners
+  document.addEventListener('DOMContentLoaded', function() {
+      // Calculer la durée initiale
+      calculateDuration();
+
+      // Vérifier les conflits initiaux
+      {% if not shift %}
+      checkConflicts();
+      {% endif %}
+
+      // Event listeners pour les changements
+      ['{{ form.start_time.id_for_label }}', '{{ form.end_time.id_for_label }}'].forEach(id => {
+          document.getElementById(id).addEventListener('change', function() {
+              calculateDuration();
+              checkConflicts();
+          });
+      });
+
+      ['{{ form.employee.id_for_label }}', '{{ form.date.id_for_label }}'].forEach(id => {
+          document.getElementById(id).addEventListener('change', checkConflicts);
+      });
+  });
+
+  // Validation côté client
+  document.getElementById('shiftForm').addEventListener('submit', function(e) {
+      const startTime = document.getElementById('{{ form.start_time.id_for_label }}').value;
+      const endTime = document.getElementById('{{ form.end_time.id_for_label }}').value;
+
+      if (startTime && endTime) {
+          const start = new Date(`2000-01-01 ${startTime}`);
+          const end = new Date(`2000-01-01 ${endTime}`);
+
+          if (end <= start) {
+              e.preventDefault();
+              alert('L\'heure de fin doit être après l\'heure de début.');
+              return false;
+          }
+      }
+
+      // Vérifier si il y a des conflits bloquants
+      if (document.getElementById('conflictAlert').style.display === 'block' &&
+          document.getElementById('submitBtn').disabled) {
+          e.preventDefault();
+          alert('Impossible de sauvegarder : il y a des conflits d\'horaires.');
+          return false;
+      }
+  });
+</script>
+{% endblock %}

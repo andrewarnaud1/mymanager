@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h4 class="mb-0"><i class="fas fa-calendar-plus"></i> {{ title }}</h4>
+        {% if source_schedule %}
+        <small class="text-muted">
+          Copie du planning : {{ source_schedule.week_range_display }}
+        </small>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %} {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <!-- Date de début -->
+          <div class="mb-3">
+            <label for="{{ form.week_start.id_for_label }}" class="form-label">
+              Date de début de semaine (Lundi)
+              <span class="text-danger">*</span>
+            </label>
+            {{ form.week_start }} {% if form.week_start.errors %}
+            <div class="text-danger small">{{ form.week_start.errors }}</div>
+            {% endif %}
+            <small class="form-text text-muted">
+              La date sera automatiquement ajustée au lundi de la semaine si
+              nécessaire
+            </small>
+          </div>
+
+          <!-- Calculateur de semaine -->
+          <div class="card bg-light mb-3">
+            <div class="card-body">
+              <h6>
+                <i class="fas fa-calculator"></i> Aide au choix de la semaine
+              </h6>
+              <div class="row">
+                <div class="col-md-4">
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm w-100"
+                    onclick="setWeek(0)"
+                  >
+                    Cette semaine
+                  </button>
+                </div>
+                <div class="col-md-4">
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm w-100"
+                    onclick="setWeek(1)"
+                  >
+                    Semaine prochaine
+                  </button>
+                </div>
+                <div class="col-md-4">
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm w-100"
+                    onclick="setWeek(2)"
+                  >
+                    Dans 2 semaines
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Aperçu de la semaine -->
+          <div class="alert alert-info" id="weekPreview" style="display: none">
+            <strong>Semaine sélectionnée :</strong>
+            <span id="weekDates"></span>
+          </div>
+
+          <!-- Notes -->
+          <div class="mb-3">
+            <label for="{{ form.notes.id_for_label }}" class="form-label"
+              >Notes</label
+            >
+            {{ form.notes }} {% if form.notes.errors %}
+            <div class="text-danger small">{{ form.notes.errors }}</div>
+            {% endif %}
+            <small class="form-text text-muted">
+              Notes générales pour cette semaine (optionnel)
+            </small>
+          </div>
+
+          <!-- Information de copie -->
+          {% if source_schedule %}
+          <div class="alert alert-info">
+            <h6><i class="fas fa-copy"></i> Copie de planning</h6>
+            <p class="mb-2">
+              Ce planning sera une copie du planning existant :
+            </p>
+            <ul class="mb-2">
+              <li>
+                <strong>Semaine source :</strong> {{
+                source_schedule.week_range_display }}
+              </li>
+              <li>
+                <strong>Nombre de créneaux :</strong> {{
+                source_schedule.shifts.count }}
+              </li>
+              <li>
+                <strong>Employés :</strong> {{ source_schedule.employees_count
+                }}
+              </li>
+              <li>
+                <strong>Total heures :</strong> {{
+                source_schedule.total_hours|floatformat:1 }}h
+              </li>
+            </ul>
+            <p class="mb-0">
+              Tous les créneaux seront automatiquement copiés et adaptés aux
+              nouvelles dates.
+            </p>
+          </div>
+          {% endif %}
+
+          <!-- Prochaines étapes -->
+          <div class="card bg-light mb-4">
+            <div class="card-body">
+              <h6><i class="fas fa-info-circle"></i> Après création</h6>
+              <p class="mb-2">Une fois le planning créé, vous pourrez :</p>
+              <ul class="mb-0">
+                <li>Ajouter des créneaux individuels</li>
+                <li>
+                  Utiliser l'ajout rapide pour planifier plusieurs employés
+                </li>
+                <li>Modifier ou supprimer des créneaux existants</li>
+                <li>Exporter le planning en PDF ou Excel</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Boutons -->
+          <div class="d-flex justify-content-between">
+            <a
+              href="{% url 'staff:schedules_list' %}"
+              class="btn btn-secondary"
+            >
+              <i class="fas fa-arrow-left"></i> Retour
+            </a>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i>
+              {% if source_schedule %}Copier le planning{% else %}Créer le
+              planning{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Fonction pour définir une semaine
+  function setWeek(weeksOffset) {
+    const today = new Date();
+    const currentDay = today.getDay();
+    const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay; // Dimanche = 0, Lundi = 1
+
+    const mondayThisWeek = new Date(today);
+    mondayThisWeek.setDate(today.getDate() + daysToMonday);
+
+    const targetMonday = new Date(mondayThisWeek);
+    targetMonday.setDate(mondayThisWeek.getDate() + weeksOffset * 7);
+
+    const year = targetMonday.getFullYear();
+    const month = String(targetMonday.getMonth() + 1).padStart(2, "0");
+    const day = String(targetMonday.getDate()).padStart(2, "0");
+
+    document.getElementById(
+      "{{ form.week_start.id_for_label }}"
+    ).value = `${year}-${month}-${day}`;
+    updateWeekPreview();
+  }
+
+  // Mettre à jour l'aperçu de la semaine
+  function updateWeekPreview() {
+    const weekStartInput = document.getElementById(
+      "{{ form.week_start.id_for_label }}"
+    );
+    const weekPreview = document.getElementById("weekPreview");
+    const weekDates = document.getElementById("weekDates");
+
+    if (weekStartInput.value) {
+      const startDate = new Date(weekStartInput.value);
+
+      // Ajuster au lundi si nécessaire
+      const dayOfWeek = startDate.getDay();
+      if (dayOfWeek !== 1) {
+        // Si ce n'est pas un lundi
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        startDate.setDate(startDate.getDate() + daysToMonday);
+
+        // Mettre à jour le champ
+        const year = startDate.getFullYear();
+        const month = String(startDate.getMonth() + 1).padStart(2, "0");
+        const day = String(startDate.getDate()).padStart(2, "0");
+        weekStartInput.value = `${year}-${month}-${day}`;
+      }
+
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+
+      const options = { day: "2-digit", month: "2-digit", year: "numeric" };
+      const startStr = startDate.toLocaleDateString("fr-FR", options);
+      const endStr = endDate.toLocaleDateString("fr-FR", options);
+
+      weekDates.textContent = `Du ${startStr} au ${endStr}`;
+      weekPreview.style.display = "block";
+    } else {
+      weekPreview.style.display = "none";
+    }
+  }
+
+  // Event listeners
+  document.addEventListener("DOMContentLoaded", function () {
+    // Aperçu initial
+    updateWeekPreview();
+
+    // Mise à jour lors du changement de date
+    document
+      .getElementById("{{ form.week_start.id_for_label }}")
+      .addEventListener("change", updateWeekPreview);
+
+    // Suggérer la semaine prochaine par défaut si aucune date
+    const weekStartInput = document.getElementById(
+      "{{ form.week_start.id_for_label }}"
+    );
+    if (!weekStartInput.value) {
+      setWeek(1); // Semaine prochaine
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+{% block title %}Calendrier des Plannings{% endblock%}
+{% block content %}
+<!-- Formulaire CSRF caché pour JS -->
+<form id="csrf-form" style="display:none;">{% csrf_token %}</form>
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1><i class="fas fa-calendar"></i> Calendrier des Plannings</h1>
+  {% if can_edit %}
+  <div>
+    <a
+      href="{% url 'staff:schedules_list' %}"
+      class="btn btn-outline-secondary"
+    >
+      <i class="fas fa-list"></i> Vue liste
+    </a>
+    {% if schedule %}
+    <a
+      href="{% url 'staff:shift_create' schedule.pk %}"
+      class="btn btn-primary"
+    >
+      <i class="fas fa-plus"></i> Ajouter créneau
+    </a>
+    {% else %}
+    <a href="{% url 'staff:schedule_create' %}" class="btn btn-primary">
+      <i class="fas fa-calendar-plus"></i> Créer planning
+    </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Navigation entre semaines -->
+<div class="row mb-4">
+  <div class="col-12">
+    <nav aria-label="Navigation entre semaines">
+      <ul class="pagination justify-content-center">
+        <li class="page-item">
+          <a class="page-link" href="?week={{ prev_week|date:'Y-m-d' }}">
+            <i class="fas fa-chevron-left"></i> Semaine précédente
+          </a>
+        </li>
+
+        <li class="page-item active">
+          <span class="page-link">
+            Du {{ week_start|date:"d/m/Y" }} au {{ week_end|date:"d/m/Y" }}
+          </span>
+        </li>
+
+        <li class="page-item">
+          <a class="page-link" href="?week={{ next_week|date:'Y-m-d' }}">
+            Semaine suivante <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<!-- Statut du planning -->
+{% if schedule %}
+<div class="alert alert-info">
+  <div class="row">
+    <div class="col-md-8">
+      <i class="fas fa-info-circle"></i>
+      <strong>Planning existant</strong> - Créé par {{ schedule.created_by.get_full_name|default:schedule.created_by.username }}
+      le {{ schedule.created_at|date:"d/m/Y" }} {% if schedule.notes %}
+      <br /><em>{{ schedule.notes }}</em>
+      {% endif %}
+    </div>
+    <div class="col-md-4 text-end">
+      <a
+        href="{% url 'staff:schedule_detail' schedule.pk %}"
+        class="btn btn-outline-primary btn-sm"
+      >
+        <i class="fas fa-eye"></i> Voir détails
+      </a>
+      {% if can_edit %}
+      <a
+        href="{% url 'staff:export_schedule_pdf' schedule.pk %}"
+        class="btn btn-outline-danger btn-sm"
+      >
+        <i class="fas fa-file-pdf"></i> PDF
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+  <i class="fas fa-exclamation-triangle"></i>
+  <strong>Aucun planning</strong> n'existe pour cette semaine. {% if can_edit %}
+  <a
+    href="{% url 'staff:schedule_create' %}"
+    class="btn btn-warning btn-sm ms-2"
+  >
+    <i class="fas fa-plus"></i> Créer maintenant
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Calendrier -->
+<div class="card">
+  <div class="card-body">
+    {% if employees %}
+    <div class="table-responsive">
+      <table class="table table-bordered calendar-table">
+        <!-- En-tête avec les jours -->
+        <thead class="table-dark">
+          <tr>
+            <th style="width: 150px">Employé</th>
+            {% for day in calendar_data %}
+            <th class="text-center">
+              <div>{{ day.name }}</div>
+              <small>{{ day.date|date:"d/m" }}</small>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for employee in employees %}
+          <tr>
+            <!-- Colonne employé -->
+            <td class="fw-bold align-middle">
+              {{ employee.full_name }} {% if not employee.is_active %}
+              <span class="badge bg-danger ms-1">Inactif</span>
+              {% endif %} {% if employee.is_external %}
+              <span class="badge bg-warning ms-1">Externe</span>
+              {% endif %}
+            </td>
+
+            <!-- Colonnes des jours -->
+            {% for day in calendar_data %}
+            <td
+              class="calendar-cell"
+              data-date="{{ day.date|date:'Y-m-d' }}"
+              data-employee="{{ employee.pk }}"
+            >
+              <!-- Créneaux existants pour cet employé ce jour -->
+              {% for emp_data in day.employees %} 
+              {% if emp_data.employee.pk == employee.pk %}
+              {% for shift in emp_data.shifts %}
+              <div
+                class="shift-item mb-1 p-2 bg-primary text-white rounded small"
+              >
+                <div class="fw-bold">{{ shift.time_range_display }}</div>
+                <div>{{ shift.duration_display }}</div>
+                {% if shift.notes %}
+                <div class="text-light small">
+                  {{ shift.notes|truncatewords:3 }}
+                </div>
+                {% endif %} {% if can_edit %}
+                <div class="mt-1">
+                  <a
+                    href="{% url 'staff:shift_update' shift.pk %}"
+                    class="btn btn-sm btn-outline-light"
+                    title="Modifier"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a
+                    href="{% url 'staff:shift_delete' shift.pk %}"
+                    class="btn btn-sm btn-outline-light"
+                    title="Supprimer"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </div>
+                {% endif %}
+              </div>
+              {% endfor %} {% endif %} {% endfor %}
+
+              <!-- Bouton d'ajout si édition autorisée -->
+              {% if can_edit and schedule %}
+              <div class="text-center mt-2">
+                <a
+                  href="{% url 'staff:shift_create' schedule.pk %}?date={{ day.date|date:'Y-m-d' }}"
+                  class="btn btn-sm btn-outline-success"
+                  title="Ajouter un créneau"
+                >
+                  <i class="fas fa-plus"></i>
+                </a>
+              </div>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="fas fa-user-times fa-3x text-muted mb-3"></i>
+      <h4 class="text-muted">Aucun employé actif</h4>
+      <p class="text-muted">
+        Ajoutez des employés pour pouvoir créer des plannings.
+      </p>
+      {% if can_edit %}
+      <a href="{% url 'staff:employee_create' %}" class="btn btn-primary">
+        <i class="fas fa-user-plus"></i> Ajouter un employé
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Légende -->
+<div class="row mt-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h6><i class="fas fa-info-circle"></i> Légende</h6>
+        <div class="row">
+          <div class="col-6">
+            <span class="badge bg-success">Interne</span> Employé avec compte
+          </div>
+          <div class="col-6">
+            <span class="badge bg-warning">Externe</span> Employé sans compte
+          </div>
+        </div>
+        <div class="row mt-2">
+          <div class="col-6">
+            <span class="badge bg-danger">Inactif</span> Employé désactivé
+          </div>
+          <div class="col-6">
+            <span class="bg-primary text-white px-2 py-1 rounded">Créneau</span>
+            Horaire planifié
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h6><i class="fas fa-mouse-pointer"></i> Actions rapides</h6>
+        <p class="mb-1">
+          <i class="fas fa-plus text-success"></i> Cliquer
+          <strong>+</strong> pour ajouter un créneau
+        </p>
+        <p class="mb-1">
+          <i class="fas fa-edit text-primary"></i> Cliquer
+          <strong>✏️</strong> pour modifier un créneau
+        </p>
+        <p class="mb-0">
+          <i class="fas fa-trash text-danger"></i> Cliquer
+          <strong>🗑️</strong> pour supprimer un créneau
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .calendar-table th,
+  .calendar-table td {
+    vertical-align: top;
+    min-height: 100px;
+  }
+
+  .calendar-cell {
+    width: 14.28%; /* 100% / 7 jours */
+    min-width: 120px;
+  }
+
+  .shift-item {
+    margin-bottom: 5px;
+    cursor: pointer;
+  }
+
+  .shift-item:hover {
+    opacity: 0.9;
+  }
+
+  @media (max-width: 768px) {
+    .calendar-table {
+      font-size: 0.8rem;
+    }
+
+    .calendar-cell {
+      min-width: 100px;
+    }
+
+    .shift-item {
+      font-size: 0.7rem;
+    }
+  }
+</style>
+
+{% if can_edit %}
+<script>
+  // Navigation par clavier
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        window.location.href = '?week={{ prev_week|date:"Y-m-d" }}';
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        window.location.href = '?week={{ next_week|date:"Y-m-d" }}';
+      }
+    }
+  });
+</script>
+{% endif %} {% endblock %}

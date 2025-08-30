@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestion des Employés{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-user-friends"></i> Gestion des Employés</h1>
+    <div>
+        <a href="{% url 'staff:employee_create' %}?type=external" class="btn btn-outline-primary">
+            <i class="fas fa-user-plus"></i> Employé externe
+        </a>
+        <a href="{% url 'staff:employee_create' %}?type=internal" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i> Employé interne
+        </a>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_employees }}</h4>
+                        <p class="mb-0">Total employés</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ internal_count }}</h4>
+                        <p class="mb-0">Employés internes</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ external_count }}</h4>
+                        <p class="mb-0">Employés externes</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ inactive_count }}</h4>
+                        <p class="mb-0">Inactifs</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user-times fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label for="search" class="form-label">Recherche</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search }}" placeholder="Nom, prénom, téléphone...">
+            </div>
+            <div class="col-md-4">
+                <label for="status" class="form-label">Statut</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">Tous</option>
+                    <option value="internal" {% if status == 'internal' %}selected{% endif %}>Internes</option>
+                    <option value="external" {% if status == 'external' %}selected{% endif %}>Externes</option>
+                    <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactifs</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search"></i> Filtrer
+                </button>
+                <a href="{% url 'staff:employees_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Liste des employés -->
+<div class="card">
+    <div class="card-body">
+        {% if employees %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Téléphone</th>
+                        <th>Statut</th>
+                        <th>Compte</th>
+                        <th>Embauché le</th>
+                        <th>Plannings</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees %}
+                    <tr {% if not employee.is_active %}class="table-secondary"{% endif %}>
+                        <td>
+                            <strong>{{ employee.full_name }}</strong>
+                            {% if not employee.is_active %}
+                                <span class="badge bg-danger ms-2">Inactif</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if employee.phone %}
+                                <a href="tel:{{ employee.phone }}" class="text-decoration-none">
+                                    <i class="fas fa-phone"></i> {{ employee.phone }}
+                                </a>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if employee.is_external %}
+                                <span class="badge bg-warning">Externe</span>
+                            {% else %}
+                                <span class="badge bg-success">Interne</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if employee.user %}
+                                <i class="fas fa-user-check text-success"></i> 
+                                {{ employee.user.username }}
+                                {% if employee.user.groups.first %}
+                                    <small class="text-muted">({{ employee.user.groups.first.name }})</small>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">Aucun compte</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if employee.hire_date %}
+                                {{ employee.hire_date|date:"d/m/Y" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if employee.shifts_count > 0 %}
+                                <span class="badge bg-info">{{ employee.shifts_count }} créneaux</span>
+                            {% else %}
+                                <span class="text-muted">Aucun</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'staff:employee_update' employee.pk %}" 
+                                   class="btn btn-sm btn-outline-primary" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if employee.is_external %}
+                                <a href="{% url 'staff:employee_convert' employee.pk %}" 
+                                   class="btn btn-sm btn-outline-success" title="Convertir en interne">
+                                    <i class="fas fa-user-plus"></i>
+                                </a>
+                                {% endif %}
+                                <button type="button" 
+                                        class="btn btn-sm {% if employee.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" 
+                                        onclick="toggleEmployeeStatus({{ employee.pk }}, '{{ employee.full_name }}')"
+                                        title="{% if employee.is_active %}Désactiver{% else %}Activer{% endif %}">
+                                    <i class="fas {% if employee.is_active %}fa-user-times{% else %}fa-user-check{% endif %}"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Pagination des employés">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status %}&status={{ status }}{% endif %}">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">Aucun employé trouvé</h4>
+            <p class="text-muted">Commencez par ajouter votre premier employé.</p>
+            <a href="{% url 'staff:employee_create' %}" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Ajouter un employé
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleEmployeeStatus(employeeId, employeeName) {
+    if (confirm(`Êtes-vous sûr de vouloir changer le statut de ${employeeName} ?`)) {
+        fetch(`/personnel/employes/${employeeId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur lors du changement de statut');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erreur lors du changement de statut');
+        });
+    }
+}
+</script>
+{% endblock %}

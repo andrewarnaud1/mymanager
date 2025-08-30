@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+{% block title %}Plannings{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1><i class="fas fa-calendar-alt"></i> Plannings Hebdomadaires</h1>
+  {% if user.is_superuser or user.groups.filter.name == 'Managers' %}
+    <div>
+      <a
+        href="{% url 'staff:schedule_calendar' %}"
+        class="btn btn-outline-primary"
+      >
+        <i class="fas fa-calendar"></i> Vue calendrier
+      </a>
+      <a href="{% url 'staff:schedule_create' %}" class="btn btn-primary">
+        <i class="fas fa-calendar-plus"></i> Nouveau planning
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Filtres -->
+{% if search %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3">
+        <div class="col-md-10">
+          <label for="search" class="form-label">Recherche</label>
+          <input
+            type="text"
+            class="form-control"
+            id="search"
+            name="search"
+            value="{{ search }}"
+            placeholder="Rechercher dans les notes, employés..."
+          />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary me-2">
+            <i class="fas fa-search"></i> Rechercher
+          </button>
+          <a
+            href="{% url 'staff:schedules_list' %}"
+            class="btn btn-outline-secondary"
+          >
+            <i class="fas fa-times"></i>
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Semaine actuelle en évidence -->
+{% if current_week_start %}
+  <div class="alert alert-info">
+    <i class="fas fa-calendar-day"></i>
+    <strong>Semaine actuelle :</strong>
+    du {{ current_week_start|date:"d/m/Y" }} au {{ current_week_end|date:"d/m/Y" }} 
+    {% for schedule in page_obj %}
+      {% if schedule.week_start == current_week_start %} -
+        <a href="{% url 'staff:schedule_detail' schedule.pk %}" class="alert-link">
+          Voir le planning
+        </a>
+      {% endif %}
+    {% empty %}
+      - <em>Aucun planning créé</em>
+      {% if user.is_superuser or user.groups.filter.name == 'Managers' %}
+        <a href="{% url 'staff:schedule_create' %}" class="alert-link">
+          Créer maintenant
+        </a>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Liste des plannings -->
+<div class="card">
+  <div class="card-body">
+    {% if page_obj %}
+    <div class="row">
+      {% for schedule in page_obj %}
+      <div class="col-lg-6 col-xl-4 mb-4">
+        <div
+          class="card h-100 {% if schedule.is_current_week %}border-primary{% endif %}"
+        >
+          {% if schedule.is_current_week %}
+          <div class="card-header bg-primary text-white">
+            <i class="fas fa-star"></i> Semaine actuelle
+          </div>
+          {% endif %}
+
+          <div class="card-body">
+            <h5 class="card-title">
+              <a
+                href="{% url 'staff:schedule_detail' schedule.pk %}"
+                class="text-decoration-none"
+              >
+                {{ schedule.week_range_display }}
+              </a>
+            </h5>
+
+            <div class="row text-center mb-3">
+              <div class="col-4">
+                <div class="text-primary">
+                  <i class="fas fa-clock"></i>
+                  <div class="fw-bold">
+                    {{ schedule.total_hours|floatformat:1 }}h
+                  </div>
+                  <small class="text-muted">Total</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="text-success">
+                  <i class="fas fa-users"></i>
+                  <div class="fw-bold">{{ schedule.employees_count }}</div>
+                  <small class="text-muted">Employés</small>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="text-info">
+                  <i class="fas fa-calendar-check"></i>
+                  <div class="fw-bold">{{ schedule.shifts.count }}</div>
+                  <small class="text-muted">Créneaux</small>
+                </div>
+              </div>
+            </div>
+
+            {% if schedule.notes %}
+            <p class="card-text text-muted small">
+              <i class="fas fa-sticky-note"></i> 
+              {{ schedule.notes|truncatewords:10 }}
+            </p>
+            {% endif %}
+
+            <div class="text-muted small">
+              <i class="fas fa-user"></i>
+              {{ schedule.created_by.get_full_name|default:schedule.created_by.username }}
+              <br />
+              <i class="fas fa-calendar-plus"></i> 
+              {{ schedule.created_at|date:"d/m/Y" }}
+            </div>
+          </div>
+
+          <div class="card-footer bg-transparent">
+            <div class="d-flex justify-content-between">
+              <a
+                href="{% url 'staff:schedule_detail' schedule.pk %}"
+                class="btn btn-primary btn-sm"
+              >
+                <i class="fas fa-eye"></i> Voir
+              </a>
+
+              {% if user.is_superuser or user.groups.filter.name == 'Managers' %}
+              <div class="btn-group">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                  data-bs-toggle="dropdown"
+                >
+                  <i class="fas fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a
+                      class="dropdown-item"
+                      href="{% url 'staff:shift_create' schedule.pk %}"
+                    >
+                      <i class="fas fa-plus"></i> Ajouter créneau
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      class="dropdown-item"
+                      href="{% url 'staff:schedule_copy' schedule.pk %}"
+                    >
+                      <i class="fas fa-copy"></i> Copier
+                    </a>
+                  </li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li>
+                    <a
+                      class="dropdown-item"
+                      href="{% url 'staff:export_schedule_pdf' schedule.pk %}"
+                    >
+                      <i class="fas fa-file-pdf"></i> PDF
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      class="dropdown-item"
+                      href="{% url 'staff:export_schedule_excel' schedule.pk %}"
+                    >
+                      <i class="fas fa-file-excel"></i> Excel
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Pagination des plannings">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}"
+          >
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        </li>
+        {% endif %} {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <li class="page-item active">
+          <span class="page-link">{{ num }}</span>
+        </li>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3'%}
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}"
+            >{{ num }}</a
+          >
+        </li>
+        {% endif %} {% endfor %} {% if page_obj.has_next %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}"
+          >
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %} {% else %}
+    <div class="text-center py-5">
+      <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+      <h4 class="text-muted">Aucun planning trouvé</h4>
+      {% if search %}
+      <p class="text-muted">
+        Aucun planning ne correspond à votre recherche "{{ search }}".
+      </p>
+      <a
+        href="{% url 'staff:schedules_list' %}"
+        class="btn btn-outline-primary"
+      >
+        <i class="fas fa-times"></i> Effacer la recherche
+      </a>
+      {% else %}
+      <p class="text-muted">
+        Commencez par créer votre premier planning hebdomadaire.
+      </p>
+      {% if user.is_superuser or user.groups.filter.name == 'Managers' %}
+      <a href="{% url 'staff:schedule_create' %}" class="btn btn-primary">
+        <i class="fas fa-calendar-plus"></i> Créer un planning
+      </a>
+      {% endif %} {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Accès rapide -->
+<div class="row mt-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="fas fa-calendar fa-2x text-primary mb-2"></i>
+        <h5>Vue Calendrier</h5>
+        <p class="text-muted">
+          Visualisez les plannings sous forme de calendrier hebdomadaire
+        </p>
+        <a
+          href="{% url 'staff:schedule_calendar' %}"
+          class="btn btn-outline-primary"
+        >
+          <i class="fas fa-calendar"></i> Ouvrir le calendrier
+        </a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body text-center">
+        <i class="fas fa-user-friends fa-2x text-success mb-2"></i>
+        <h5>Gestion Employés</h5>
+        <p class="text-muted">Gérez vos employés internes et externes</p>
+        {% if user.is_superuser or user.groups.filter.name == 'Managers' %}
+        <a
+          href="{% url 'staff:employees_list' %}"
+          class="btn btn-outline-success"
+        >
+          <i class="fas fa-users"></i> Voir les employés
+        </a>
+        {% else %}
+        <span class="text-muted">Accès réservé aux managers</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Confirmer la suppression{% endblock %}
+{% block content %}
+<div class="container mt-5">
+  <div class="alert alert-danger">
+    <h4 class="alert-heading">Suppression d'un créneau</h4>
+    <p>Voulez-vous vraiment supprimer le créneau de <strong>{{ shift.employee.full_name }}</strong> du <strong>{{ shift.date }}</strong> ({{ shift.time_range_display }}) ?</p>
+    <form method="post">
+      {% csrf_token %}
+      <a href="{% url 'staff:schedule_detail' shift.schedule.pk %}" class="btn btn-secondary">Annuler</a>
+      <button type="submit" class="btn btn-danger">Supprimer</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% block title %}{{ schedule }}{% endblock %}
+{% block content %}
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1><i class="fas fa-calendar-alt"></i> {{ schedule }}</h1>
+    <div class="text-muted">
+      <i class="fas fa-user"></i> Créé par {{ schedule.created_by.get_full_name|default:schedule.created_by.username }}
+      le {{ schedule.created_at|date:"d/m/Y à H:i" }}
+    </div>
+  </div>
+
+  {% if can_edit %}
+  <div class="btn-group">
+    <button
+      type="button"
+      class="btn btn-primary dropdown-toggle"
+      data-bs-toggle="dropdown"
+    >
+      <i class="fas fa-plus"></i> Actions
+    </button>
+    <ul class="dropdown-menu">
+      <li>
+        <a
+          class="dropdown-item"
+          href="{% url 'staff:shift_create' schedule.pk %}"
+        >
+          <i class="fas fa-plus"></i> Ajouter un créneau
+        </a>
+      </li>
+      <li>
+        <a
+          class="dropdown-item"
+          href="{% url 'staff:quick_shifts_create' schedule.pk %}"
+        >
+          <i class="fas fa-magic"></i> Ajout rapide
+        </a>
+      </li>
+      <li><hr class="dropdown-divider" /></li>
+      <li>
+        <a
+          class="dropdown-item"
+          href="{% url 'staff:schedule_copy' schedule.pk %}"
+        >
+          <i class="fas fa-copy"></i> Copier ce planning
+        </a>
+      </li>
+      <li><hr class="dropdown-divider" /></li>
+      <li>
+        <a
+          class="dropdown-item"
+          href="{% url 'staff:export_schedule_pdf' schedule.pk %}"
+        >
+          <i class="fas fa-file-pdf"></i> Exporter en PDF
+        </a>
+      </li>
+      <li>
+        <a
+          class="dropdown-item"
+          href="{% url 'staff:export_schedule_excel' schedule.pk %}"
+        >
+          <i class="fas fa-file-excel"></i> Exporter en Excel
+        </a>
+      </li>
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Navigation entre semaines -->
+<div class="row mb-4">
+  <div class="col-12">
+    <nav aria-label="Navigation entre plannings">
+      <ul class="pagination justify-content-center">
+        {% if prev_schedule %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="{% url 'staff:schedule_detail' prev_schedule.pk %}"
+          >
+            <i class="fas fa-chevron-left"></i> Semaine précédente
+          </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">
+            <i class="fas fa-chevron-left"></i> Semaine précédente
+          </span>
+        </li>
+        {% endif %}
+
+        <li class="page-item active">
+          <span class="page-link">{{ schedule.week_range_display }}</span>
+        </li>
+
+        {% if next_schedule %}
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="{% url 'staff:schedule_detail' next_schedule.pk %}"
+          >
+            Semaine suivante <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+          <span class="page-link">
+            Semaine suivante <i class="fas fa-chevron-right"></i>
+          </span>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card bg-primary text-white">
+      <div class="card-body text-center">
+        <h3>{{ total_hours|floatformat:1 }}h</h3>
+        <p class="mb-0">Total d'heures</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card bg-success text-white">
+      <div class="card-body text-center">
+        <h3>{{ employees_count }}</h3>
+        <p class="mb-0">Employés planifiés</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card bg-info text-white">
+      <div class="card-body text-center">
+        <h3>{{ shifts.count }}</h3>
+        <p class="mb-0">Créneaux total</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Planning hebdomadaire -->
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">
+      <i class="fas fa-calendar-week"></i> Planning de la semaine
+    </h5>
+  </div>
+  <div class="card-body">
+    {% if days %}
+    <div class="table-responsive">
+      <table class="table table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th style="width: 150px">Employé</th>
+            {% for day in days %}
+            <th class="text-center">
+              {{ day.name }}<br />
+              <small>{{ day.date|date:"d/m" }}</small>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% regroup shifts by employee as employee_shifts %}
+          {% for employee_group in employee_shifts %}
+          <tr>
+            <td class="fw-bold">
+              {{ employee_group.grouper.full_name }} {% if not employee_group.grouper.is_active %}
+              <span class="badge bg-danger ms-1">Inactif</span>
+              {% endif %} {% if employee_group.grouper.is_external %}
+              <span class="badge bg-warning ms-1">Externe</span>
+              {% endif %}
+            </td>
+            {% for day in days %}
+            <td class="text-center" style="min-width: 120px">
+              {% for shift in employee_group.list %} {% if shift.date == day.date %}
+              <div
+                class="shift-item mb-1 p-2 bg-light rounded"
+                style="font-size: 0.9em"
+              >
+                <div class="fw-bold text-primary">
+                  {{ shift.time_range_display }}
+                </div>
+                <div class="text-muted small">{{ shift.duration_display }}</div>
+                {% if shift.notes %}
+                <div class="text-info small">{{ shift.notes }}</div>
+                {% endif %} {% if can_edit %}
+                <div class="mt-1">
+                  <a
+                    href="{% url 'staff:shift_update' shift.pk %}"
+                    class="btn btn-sm btn-outline-primary"
+                    title="Modifier"
+                  >
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a
+                    href="{% url 'staff:shift_delete' shift.pk %}"
+                    class="btn btn-sm btn-outline-danger"
+                    title="Supprimer"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </div>
+                {% endif %}
+              {% endif %}
+              {% endfor %}
+
+              <!-- Bouton d'ajout rapide pour ce jour -->
+              {% if can_edit %}
+              <div class="mt-2">
+                <a
+                  href="{% url 'staff:shift_create' schedule.pk %}?date={{ day.date|date:'Y-m-d' }}"
+                  class="btn btn-sm btn-outline-success"
+                  title="Ajouter un créneau"
+                >
+                  <i class="fas fa-plus"></i>
+                </a>
+              </div>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+              <i class="fas fa-calendar-times fa-2x mb-2"></i>
+              <p>Aucun créneau planifié pour cette semaine.</p>
+              {% if can_edit %}
+              <a
+                href="{% url 'staff:shift_create' schedule.pk %}"
+                class="btn btn-primary"
+              >
+                <i class="fas fa-plus"></i> Ajouter le premier créneau
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-4">
+      <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+      <h4 class="text-muted">Planning vide</h4>
+      <p class="text-muted">
+        Aucun créneau n'a encore été planifié pour cette semaine.
+      </p>
+      {% if can_edit %}
+      <a
+        href="{% url 'staff:shift_create' schedule.pk %}"
+        class="btn btn-primary"
+      >
+        <i class="fas fa-plus"></i> Ajouter le premier créneau
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Notes du planning -->
+{% if schedule.notes %}
+<div class="card mt-4">
+  <div class="card-header">
+    <h6 class="mb-0"><i class="fas fa-sticky-note"></i> Notes</h6>
+  </div>
+  <div class="card-body">
+    <p class="mb-0">{{ schedule.notes|linebreaks }}</p>
+  </div>
+</div>
+{% endif %}
+
+<!-- Actions en bas -->
+<div class="d-flex justify-content-between mt-4">
+  <a href="{% url 'staff:schedules_list' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour aux plannings
+  </a>
+
+  <div>
+    <a
+      href="{% url 'staff:schedule_calendar' %}?week={{ schedule.week_start|date:'Y-m-d' }}"
+      class="btn btn-outline-primary"
+    >
+      <i class="fas fa-calendar"></i> Vue calendrier
+    </a>
+    {% if can_edit %}
+    <a
+      href="{% url 'staff:export_schedule_pdf' schedule.pk %}"
+      class="btn btn-outline-danger"
+    >
+      <i class="fas fa-file-pdf"></i> PDF
+    </a>
+    <a
+      href="{% url 'staff:export_schedule_excel' schedule.pk %}"
+      class="btn btn-outline-success"
+    >
+      <i class="fas fa-file-excel"></i> Excel
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
