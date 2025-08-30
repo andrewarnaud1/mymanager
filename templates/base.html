@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
   <head>
@@ -18,8 +19,8 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
-        <a class="navbar-brand" href="{% url 'dashboard:dashboard' %}">
-          <i class="fas fa-utensils"></i> Restaurant Manager
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard:dashboard' %}">
+          <img src="{% static 'images/logo.png' %}" alt="Logo du restaurant" height="40" class="me-2" style="max-height:40px;"> Restaurant Manager
         </a>
 
         <button
@@ -71,12 +72,6 @@
                       href="{% url 'recipes:ingredients' %}"
                       >Mes ingrédients</a
                     >
-                  </li>
-                  <li>
-                    <a
-                      class="dropdown-item"
-                      href="{% url 'recipes:suppliers' %}"
-                    >Mes fournisseurs</a>
                   </li>
                 </ul>
               </li>

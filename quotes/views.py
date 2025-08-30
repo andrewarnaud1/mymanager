@@ -197,24 +197,26 @@ def quote_pdf(request, pk):
     """Générer le PDF du devis avec ReportLab"""
     from django.http import HttpResponse
     from reportlab.lib.pagesizes import A4
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
     from io import BytesIO
+    import os
     
     quote = get_object_or_404(Quote, pk=pk)
     items = quote.quote_items.all().select_related('recipe')
     
     # Paramètres par défaut de l'entreprise
     company_settings = {
-        'name': 'Restaurant Manager',
-        'address': '123 Rue de la Gastronomie\n75001 Paris, France',
-        'phone': '01 23 45 67 89',
-        'email': 'contact@restaurant-manager.fr',
-        'siret': '123 456 789 00012',
-        'tva_number': 'FR12345678901'
+        'name': 'Les Délices de Pauline',
+        'address': '51 Rue des Girondins, 69007 Lyon, France',
+        'phone': '+33 6 99 56 91 83',
+        'email': 'paulinearnaudcs@gmail.com',
+        'siret': 'À compléter',
+        'tva_number': 'À compléter',
+        'logo_path': os.path.join('static', 'images', 'logo.png')  # chemin relatif au projet
     }
     
     # Créer le buffer PDF
@@ -228,35 +230,63 @@ def quote_pdf(request, pk):
         'CustomTitle',
         parent=styles['Heading1'],
         fontSize=24,
-        textColor=colors.HexColor('#007bff'),
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#F0A103'),
         spaceAfter=30,
         alignment=TA_CENTER
     )
-    
+
     heading_style = ParagraphStyle(
         'CustomHeading',
         parent=styles['Heading2'],
         fontSize=14,
-        textColor=colors.HexColor('#007bff'),
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#F0A103'),
         spaceAfter=12
+    )
+
+    normal_style = ParagraphStyle(
+        'CustomNormal',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10,
+        textColor=colors.HexColor('#000000'),
+        spaceAfter=6
     )
     
     # Contenu du PDF
     content = []
-    
-    # En-tête entreprise
+
+    # Logo (si présent)
+    logo_path = company_settings['logo_path']
+    if os.path.exists(logo_path):
+        img = Image(logo_path, width=3*cm, height=3*cm)
+        img.hAlign = 'LEFT'
+        content.append(img)
+        content.append(Spacer(1, 10))
+
+    # En-tête entreprise modernisé
     company_data = [
-        [Paragraph(f"<b>{company_settings['name']}</b>", styles['Heading2']), 
-         Paragraph(f"SIRET: {company_settings['siret']}<br/>TVA: {company_settings['tva_number']}", styles['Normal'])]
+        [
+            Paragraph(f"<b>{company_settings['name']}</b>", heading_style),
+            Paragraph(f"SIRET: {company_settings['siret']}<br/>TVA: {company_settings['tva_number']}", normal_style)
+        ],
+        [
+            Paragraph(company_settings['address'].replace('\n', '<br/>'), normal_style),
+            Paragraph(f"Tél: {company_settings['phone']}<br/>{company_settings['email']}", normal_style)
+        ]
     ]
-    company_table = Table(company_data, colWidths=[10*cm, 7*cm])
+    company_table = Table(company_data, colWidths=[9*cm, 8*cm])
     company_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#007bff')),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
+        ('LINEBELOW', (0, 0), (-1, 0), 2, colors.HexColor('#F0A103')),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
     ]))
     content.append(company_table)
-    content.append(Spacer(1, 20))
-    
+    content.append(Spacer(1, 18))
+
     # Titre du devis
     content.append(Paragraph(f"DEVIS N° {quote.quote_number}", title_style))
     
@@ -270,91 +300,95 @@ def quote_pdf(request, pk):
     {quote.customer.email or ''}<br/>
     {quote.customer.phone or ''}
     """
-    
+
     quote_info = f"""
     <b>Détails du devis:</b><br/>
     Date: {quote.quote_date.strftime('%d/%m/%Y')}<br/>
     Valable jusqu'au: {quote.valid_until.strftime('%d/%m/%Y')}<br/>
     {f"Événement: {quote.event_date.strftime('%d/%m/%Y')}" if quote.event_date else ""}
     """
-    
+
     info_data = [
-        [Paragraph(client_info, styles['Normal']), 
-         Paragraph(quote_info, styles['Normal'])]
+        [Paragraph(client_info, normal_style),
+         Paragraph(quote_info, normal_style)]
     ]
     info_table = Table(info_data, colWidths=[8.5*cm, 8.5*cm])
     info_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (0, 0), 1, colors.grey),
-        ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#f9f9f9')),
+        ('BOX', (0, 0), (0, 0), 1, colors.HexColor('#E2E2E2')),
+        ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#E2E2E2')),
         ('PADDING', (0, 0), (-1, -1), 12),
     ]))
     content.append(info_table)
-    content.append(Spacer(1, 20))
+    content.append(Spacer(1, 18))
     
     # Objet du devis
     content.append(Paragraph(f"<b>Objet:</b> {quote.title}", heading_style))
     if quote.description:
-        content.append(Paragraph(quote.description, styles['Normal']))
-    content.append(Spacer(1, 20))
+        content.append(Paragraph(quote.description, normal_style))
+    content.append(Spacer(1, 16))
     
     # Tableau des prestations
     content.append(Paragraph("Détail des prestations", heading_style))
-    
+
     # En-têtes du tableau
-    data = [['Prestation', 'Quantité', 'Prix unitaire HT', 'Total HT']]
-    
+    data = [[
+        Paragraph('<b>Prestation</b>', normal_style),
+        Paragraph('<b>Quantité</b>', normal_style),
+        Paragraph('<b>Prix unitaire HT</b>', normal_style),
+        Paragraph('<b>Total HT</b>', normal_style)
+    ]]
+
     # Lignes des prestations
     for item in items:
         description = f"{item.recipe.name}"
         if item.description:
             description += f"\n{item.description}"
-        
         data.append([
-            description,
-            f"{item.quantity} portions",
-            f"{item.unit_price:.2f} €",
-            f"{item.total_price:.2f} €"
+            Paragraph(description, normal_style),
+            Paragraph(f"{item.quantity} portions", normal_style),
+            Paragraph(f"{item.unit_price:.2f} €", normal_style),
+            Paragraph(f"{item.total_price:.2f} €", normal_style)
         ])
-    
+
     # Ligne sous-total
-    data.append(['', '', 'Sous-total HT:', f"{quote.subtotal:.2f} €"])
-    
+    data.append(['', '', Paragraph('<b>Sous-total HT:</b>', normal_style), Paragraph(f"{quote.subtotal:.2f} €", normal_style)])
+
     # Ligne remise si applicable
     if quote.discount_percentage > 0:
-        data.append(['', '', f'Remise ({quote.discount_percentage}%):', f"-{quote.discount_amount:.2f} €"])
-        data.append(['', '', 'Net HT:', f"{quote.subtotal_after_discount:.2f} €"])
-    
+        data.append(['', '', Paragraph(f'<b>Remise ({quote.discount_percentage}%):</b>', normal_style), Paragraph(f"-{quote.discount_amount:.2f} €", normal_style)])
+        data.append(['', '', Paragraph('<b>Net HT:</b>', normal_style), Paragraph(f"{quote.subtotal_after_discount:.2f} €", normal_style)])
+
     # Ligne TVA
-    data.append(['', '', f'TVA ({quote.tax_rate}%):', f"{quote.tax_amount:.2f} €"])
-    
+    data.append(['', '', Paragraph(f'<b>TVA ({quote.tax_rate}%):</b>', normal_style), Paragraph(f"{quote.tax_amount:.2f} €", normal_style)])
+
     # Ligne total
-    data.append(['', '', 'TOTAL TTC:', f"{quote.total_amount:.2f} €"])
-    
+    data.append(['', '', Paragraph('<b>TOTAL TTC:</b>', normal_style), Paragraph(f"{quote.total_amount:.2f} €", normal_style)])
+
     # Créer le tableau
     table = Table(data, colWidths=[7*cm, 3*cm, 4*cm, 3*cm])
     table.setStyle(TableStyle([
         # En-tête
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f8f9fa')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#007bff')),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#F0A103')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#FFFFFF')),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
         ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        
+
         # Bordures
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        
+        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E2E2E2')),
+
         # Total
-        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#28a745')),
-        ('TEXTCOLOR', (0, -1), (-1, -1), colors.white),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#F0A103')),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#FFFFFF')),
         ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
     ]))
-    
+
     content.append(table)
-    content.append(Spacer(1, 30))
+    content.append(Spacer(1, 24))
     
     # Conditions
     content.append(Paragraph("Conditions générales", heading_style))
@@ -362,21 +396,24 @@ def quote_pdf(request, pk):
     <b>Modalités de paiement:</b> 30% d'acompte à la commande, solde à la livraison.<br/>
     <b>Validité du devis:</b> Ce devis est valable jusqu'au {quote.valid_until.strftime('%d/%m/%Y')}.<br/>
     <b>Livraison:</b> Les prestations seront livrées à l'adresse indiquée par le client.<br/><br/>
-    
     {quote.terms_conditions if quote.terms_conditions else ''}
     """
-    content.append(Paragraph(conditions_text, styles['Normal']))
-    content.append(Spacer(1, 30))
+    content.append(Paragraph(conditions_text, normal_style))
+    content.append(Spacer(1, 18))
     
     # Signature
     signature_data = [
-        ['Bon pour accord\nDate et signature du client:', f'{company_settings["name"]}\nSignature et cachet']
+        [
+            Paragraph('Bon pour accord<br/>Date et signature du client :', normal_style),
+            Paragraph(f'{company_settings["name"]}<br/>Signature et cachet', normal_style)
+        ]
     ]
-    signature_table = Table(signature_data, colWidths=[8.5*cm, 8.5*cm], rowHeights=[3*cm])
+    signature_table = Table(signature_data, colWidths=[8.5*cm, 8.5*cm], rowHeights=[2.2*cm])
     signature_table.setStyle(TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOX', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+        ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#E2E2E2')),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FFFFFF')),
     ]))
     content.append(signature_table)
     
