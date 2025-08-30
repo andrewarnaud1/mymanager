@@ -1,3 +1,5 @@
-*/.venv/
+.venv/
+
 */migrations/
+
 *__pycache__/
